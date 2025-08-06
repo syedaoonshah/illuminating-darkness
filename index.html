@@ -1,41 +1,4 @@
-showSingleResults(loeValue) {
-                const sameSize = this.inputImage.width === this.enhancedImage.width && 
-                               this.inputImage.height === this.enhancedImage.height;
-                
-                let interpretation = '';
-                if (loeValue < 50) {
-                    interpretation = 'Excellent enhancement quality - very good preservation of lightness order';
-                } else if (loeValue < 100) {
-                    interpretation = 'Good enhancement quality - acceptable lightness order preservation';
-                } else if (loeValue < 200) {
-                    interpretation = 'Fair enhancement quality - some lightness order distortion';
-                } else {
-                    interpretation = 'Poor enhancement quality - significant lightness order distortion';
-                }
-                
-                const resultSection = document.getElementById('resultSection');
-                if (!resultSection) {
-                    console.error('Result section not found');
-                    return;
-                }
-                
-                let dimensionNote = '';
-                if (!sameSize) {
-                    dimensionNote = `<p style="font-size:0.9em;color:#666;margin-top:15px;">
-                        <strong>Note:</strong> Enhanced image was resized from ${this.enhancedImage.width}×${this.enhancedImage.height} 
-                        to ${this.inputImage.width}×${this.inputImage.height} for comparison.
-                    </p>`;
-                }
-                
-                resultSection.innerHTML = `
-                    <div class="loe-value" id="loeValue">${loeValue.toFixed(2)}</div>
-                    <div class="loe-interpretation" id="loeInterpretation">${interpretation}</div>
-                    <p><strong>Calculation completed!</strong> The LOE metric measures how well the enhanced image preserves the lightness order relationships of the original image.</p>
-                    ${dimensionNote}
-                `;
-                
-                resultSection.classList.add('show');
-            }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -619,7 +582,7 @@ showSingleResults(loeValue) {
         </div>
     </div>
 
-    <script src="https://syedaoonshah.github.io/illuminating-darkness/loe-algorithm.js"></script>
+    <script src="loe-calculator.js"></script>
     <script>
         // Dataset and method definitions
         const DATASETS = ['LOL', 'DICM', 'NPE', 'LIME', 'MEF'];
@@ -639,6 +602,9 @@ showSingleResults(loeValue) {
                 this.availableImages = new Set();
                 this.individualLOEScores = new Map(); // Store individual image LOE scores
                 this.datasetSpecificImages = new Map(); // Store available images per dataset
+                
+                // Initialize LOE calculator
+                this.loeCalculator = new LOECalculator();
                 
                 this.setupUI();
             }
@@ -840,10 +806,7 @@ showSingleResults(loeValue) {
                     const targetWidth = this.inputImage.width;
                     const targetHeight = this.inputImage.height;
                     
-                    const inputData = this.getImageData(this.inputImage, targetWidth, targetHeight);
-                    const enhancedData = this.getImageData(this.enhancedImage, targetWidth, targetHeight);
-
-                    const loeValue = await this.computeLOE(inputData, enhancedData);
+                    const loeValue = await this.loeCalculator.calculateImageLOE(this.inputImage, this.enhancedImage);
                     this.showSingleResults(loeValue);
                 } catch (error) {
                     console.error('LOE calculation error:', error);
@@ -1069,43 +1032,15 @@ showSingleResults(loeValue) {
             }
 
             async loadImageFromPath(imageUrl) {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous'; // Enable CORS
-                    
-                    img.onload = () => {
-                        resolve(img);
-                    };
-                    
-                    img.onerror = () => {
-                        resolve(null); // Return null instead of rejecting
-                    };
-                    
-                    img.src = imageUrl;
-                    
-                    // Set a timeout to avoid hanging
-                    setTimeout(() => {
-                        if (!img.complete) {
-                            resolve(null);
-                        }
-                    }, 5000); // Reduced timeout to 5 seconds for faster processing
-                });
+                return await this.loeCalculator.loadImageFromPath(imageUrl);
             }
 
             async calculateRealLOE(inputImage, enhancedImage) {
-                // Ensure both images have the same dimensions (use input as reference)
-                const targetWidth = inputImage.width;
-                const targetHeight = inputImage.height;
-                
-                const inputData = this.getImageData(inputImage, targetWidth, targetHeight);
-                const enhancedData = this.getImageData(enhancedImage, targetWidth, targetHeight);
-                
-                // Use the same LOE algorithm as single image mode
-                return await this.computeLOE(inputData, enhancedData);
+                return await this.loeCalculator.calculateImageLOE(inputImage, enhancedImage);
             }
 
             simulateDelay(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
+                return this.loeCalculator.simulateDelay(ms);
             }
 
             showBatchResults() {
@@ -1315,32 +1250,11 @@ showSingleResults(loeValue) {
             }
 
             getLOEPerformanceRating(loeValue) {
-                // Use the external LOE algorithm utility
-                if (typeof LOEAlgorithm !== 'undefined') {
-                    return LOEAlgorithm.getPerformanceRating(loeValue);
-                }
-                
-                // Fallback implementation
-                if (loeValue < 35) return 'Excellent';
-                if (loeValue < 50) return 'Good';
-                if (loeValue < 65) return 'Fair';
-                return 'Poor';
+                return this.loeCalculator.getLOEPerformanceRating(loeValue);
             }
 
             getRatingColor(rating) {
-                // Use the external LOE algorithm utility
-                if (typeof LOEAlgorithm !== 'undefined') {
-                    return LOEAlgorithm.getRatingColor(rating);
-                }
-                
-                // Fallback implementation
-                const colors = {
-                    'Excellent': '#4caf50',
-                    'Good': '#8bc34a',
-                    'Fair': '#ff9800',
-                    'Poor': '#f44336'
-                };
-                return colors[rating] || '#666';
+                return this.loeCalculator.getRatingColor(rating);
             }
 
             setupImageGallery() {
@@ -1517,14 +1431,180 @@ showSingleResults(loeValue) {
             }
 
             async computeLOE(inputData, enhancedData) {
-                // Use the external LOE algorithm
-                if (typeof LOEAlgorithm === 'undefined') {
-                    throw new Error('LOE Algorithm not loaded. Please ensure loe-algorithm.js is accessible.');
-                }
-                
-                return await LOEAlgorithm.computeLOEAsync(inputData, enhancedData);
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            const result = this.loeAlgorithm(inputData, enhancedData);
+                            resolve(result);
+                        } catch (error) {
+                            console.error('Error in LOE algorithm:', error);
+                            reject(error);
+                        }
+                    }, 100);
+                });
             }
 
+            loeAlgorithm(inputData, enhancedData) {
+                const { width, height } = inputData;
+                const m = height;
+                const n = width;
+                
+                // Convert to grayscale and get local maxima
+                const win = 7;
+                const inputGray = this.rgbToGray(inputData);
+                const enhancedGray = this.rgbToGray(enhancedData);
+                
+                const imax = this.getLocalMax(inputGray, n, m, win);
+                const emax = this.getLocalMax(enhancedGray, n, m, win);
+                
+                // Downsample
+                const blkwin = 50;
+                const mind = Math.min(m, n);
+                const step = Math.max(1, Math.floor(mind / blkwin));
+                const blkm = Math.floor(m / step);
+                const blkn = Math.floor(n / step);
+                
+                if (blkm <= 0 || blkn <= 0) {
+                    throw new Error(`Invalid block dimensions: ${blkn}x${blkm}`);
+                }
+                
+                const ipic_ds = [];
+                const epic_ds = [];
+                
+                for (let i = 0; i < blkm; i++) {
+                    ipic_ds[i] = [];
+                    epic_ds[i] = [];
+                    for (let j = 0; j < blkn; j++) {
+                        const row = Math.min(i * step, m - 1);
+                        const col = Math.min(j * step, n - 1);
+                        ipic_ds[i][j] = imax[row][col];
+                        epic_ds[i][j] = emax[row][col];
+                    }
+                }
+                
+                // Calculate LOE
+                let totalLOE = 0;
+                for (let i = 0; i < blkm; i++) {
+                    for (let j = 0; j < blkn; j++) {
+                        let loe = 0;
+                        for (let p = 0; p < blkm; p++) {
+                            for (let q = 0; q < blkn; q++) {
+                                const flag1 = ipic_ds[p][q] >= ipic_ds[i][j];
+                                const flag2 = epic_ds[p][q] >= epic_ds[i][j];
+                                if (flag1 !== flag2) {
+                                    loe++;
+                                }
+                            }
+                        }
+                        totalLOE += loe;
+                    }
+                }
+                
+                return totalLOE / (blkm * blkn);
+            }
+
+            rgbToGray(imageData) {
+                const { data, width, height } = imageData;
+                const gray = [];
+                
+                for (let i = 0; i < height; i++) {
+                    gray[i] = [];
+                    for (let j = 0; j < width; j++) {
+                        const idx = (i * width + j) * 4;
+                        const r = data[idx];
+                        const g = data[idx + 1];
+                        const b = data[idx + 2];
+                        gray[i][j] = Math.max(r, g, b);
+                    }
+                }
+                return gray;
+            }
+
+            getLocalMax(image, width, height, win) {
+                const extImage = this.extendImage(image, width, height, win);
+                const output = [];
+                
+                for (let i = 0; i < height; i++) {
+                    output[i] = [];
+                    for (let j = 0; j < width; j++) {
+                        let max = 0;
+                        for (let di = -win; di <= win; di++) {
+                            for (let dj = -win; dj <= win; dj++) {
+                                const extRow = i + win + di;
+                                const extCol = j + win + dj;
+                                if (extImage[extRow] && extImage[extRow][extCol] !== undefined) {
+                                    const val = extImage[extRow][extCol];
+                                    if (val > max) max = val;
+                                }
+                            }
+                        }
+                        output[i][j] = max;
+                    }
+                }
+                return output;
+            }
+
+            extendImage(image, width, height, winSize) {
+                const extended = [];
+                const newHeight = height + 2 * winSize;
+                const newWidth = width + 2 * winSize;
+                
+                for (let i = 0; i < newHeight; i++) {
+                    extended[i] = new Array(newWidth).fill(0);
+                }
+                
+                for (let i = 0; i < height; i++) {
+                    for (let j = 0; j < width; j++) {
+                        extended[i + winSize][j + winSize] = image[i][j];
+                    }
+                }
+                
+                for (let i = 0; i < winSize; i++) {
+                    for (let j = winSize; j < winSize + width; j++) {
+                        extended[winSize - 1 - i][j] = extended[winSize + 1 + i][j];
+                        extended[height + winSize + i][j] = extended[height + winSize - 2 - i][j];
+                    }
+                }
+                
+                for (let i = 0; i < newHeight; i++) {
+                    for (let j = 0; j < winSize; j++) {
+                        extended[i][winSize - 1 - j] = extended[i][winSize + 1 + j];
+                        extended[i][width + winSize + j] = extended[i][width + winSize - 2 - j];
+                    }
+                }
+                
+                return extended;
+            }
+
+            showSingleResults(loeValue) {
+                const sameSize = this.inputImage.width === this.enhancedImage.width && 
+                               this.inputImage.height === this.enhancedImage.height;
+                
+                const interpretation = this.loeCalculator.getInterpretation(loeValue);
+                
+                const resultSection = document.getElementById('resultSection');
+                if (!resultSection) {
+                    console.error('Result section not found');
+                    return;
+                }
+                
+                let dimensionNote = '';
+                if (!sameSize) {
+                    dimensionNote = `<p style="font-size:0.9em;color:#666;margin-top:15px;">
+                        <strong>Note:</strong> Enhanced image was resized from ${this.enhancedImage.width}×${this.enhancedImage.height} 
+                        to ${this.inputImage.width}×${this.inputImage.height} for comparison.
+                    </p>`;
+                }
+                
+                resultSection.innerHTML = `
+                    <div class="loe-value" id="loeValue">${loeValue.toFixed(2)}</div>
+                    <div class="loe-interpretation" id="loeInterpretation">${interpretation}</div>
+                    <p><strong>Calculation completed!</strong> The LOE metric measures how well the enhanced image preserves the lightness order relationships of the original image.</p>
+                    ${dimensionNote}
+                `;
+                
+                resultSection.classList.add('show');
+            }
         }
 
         // Tab switching functionality
@@ -1544,16 +1624,6 @@ showSingleResults(loeValue) {
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Initializing LOE Calculator App...');
-            
-            // Check if LOE Algorithm is loaded
-            if (typeof LOEAlgorithm === 'undefined') {
-                console.warn('⚠️ LOE Algorithm module not loaded. Some features may not work.');
-                alert('Warning: LOE Algorithm module not loaded. Please ensure loe-algorithm.js is accessible from your server.');
-            } else {
-                console.log('✅ LOE Algorithm module loaded successfully');
-            }
-            
             new LOECalculatorApp();
         });
     </script>
