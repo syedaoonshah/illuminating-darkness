@@ -842,7 +842,7 @@
                     console.log(`   📊 ${this.selectedDatasets.size} datasets selected`);
                     console.log(`   🔧 ${this.selectedMethods.size} methods selected`);
                     console.log(`   🎯 ${totalOperations} total LOE calculations`);
-                    console.log(`   🌐 Loading from: https://syedaoonshah.github.io/illuminating-darkness/tree/main/`);
+                    console.log(`   🌐 Loading from: https://syedaoonshah.github.io/illuminating-darkness/`);
                     console.log('');
                     
                     for (const dataset of this.selectedDatasets) {
@@ -861,8 +861,8 @@
                                     progressText.textContent = `Processing ${dataset} - ${method} - ${imageName}`;
                                     
                                     // Load input and enhanced images using your GitHub Pages URLs
-                                    const inputImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${dataset}/inputs/${imageName}`;
-                                    const enhancedImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${dataset}/results/${method}/${imageName}`;
+                                    const inputImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/inputs/${imageName}`;
+                                    const enhancedImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/results/${method}/${imageName}`;
                                     
                                     console.log(`🔄 Processing: ${dataset}/${method}/${imageName}`);
                                     
@@ -973,7 +973,7 @@
                     
                     for (const imageName of imagesToCheck) {
                         try {
-                            const testImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${dataset}/inputs/${imageName}`;
+                            const testImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/inputs/${imageName}`;
                             const testImage = await this.loadImageFromPath(testImageUrl);
                             if (testImage) {
                                 availableImages.add(imageName);
@@ -1306,7 +1306,7 @@
                 inputItem.className = 'gallery-item';
                 
                 // Load actual input image from your GitHub Pages
-                const inputUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${selectedDataset}/inputs/${imageName}`;
+                const inputUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/inputs/${imageName}`;
                 inputItem.innerHTML = `
                     <img src="${inputUrl}" alt="Input Image" 
                          onerror="this.src='https://via.placeholder.com/250x200/f0f0f0/666?text=Input+Not+Found'; this.title='${inputUrl} not found';"
@@ -1327,7 +1327,7 @@
                         item.className = 'gallery-item';
                         
                         // Load actual enhanced image from your GitHub Pages
-                        const resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${selectedDataset}/results/${method}/${imageName}`;
+                        const resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/${method}/${imageName}`;
                         item.innerHTML = `
                             <img src="${resultUrl}" alt="${method} Result" 
                                  onerror="this.src='https://via.placeholder.com/250x200/ffebee/c62828?text=${method.replace(/\s+/g, '+')}+Not+Found'; this.title='${resultUrl} not found';"
@@ -1344,7 +1344,7 @@
                             const item = document.createElement('div');
                             item.className = 'gallery-item';
                             
-                            const resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${selectedDataset}/results/${method}/${imageName}`;
+                            const resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/${method}/${imageName}`;
                             item.innerHTML = `
                                 <img src="${resultUrl}" alt="${method} Result" 
                                      onerror="this.src='https://via.placeholder.com/250x200/fff3e0/e65100?text=${method.replace(/\s+/g, '+')}+Processing'; this.title='${resultUrl} - processing or not found';"
@@ -1373,7 +1373,7 @@
                         <h4 style="color: #1976d2; margin-bottom: 15px;">🎯 Individual Image LOE Scores</h4>
                         <p><strong>Selected Image:</strong> <code>${imageName}</code> | <strong>Methods Displayed:</strong> ${count} of ${this.selectedMethods.size} selected</p>
                         <p><strong>Input URL:</strong> <code>${inputUrl}</code></p>
-                        <p><strong>Enhanced URLs:</strong> <code>https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${selectedDataset}/results/[METHOD]/${imageName}</code></p>
+                        <p><strong>Enhanced URLs:</strong> <code>https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/[METHOD]/${imageName}</code></p>
                         <div style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
                             <p style="color: #2e7d32;"><strong>✅ Each LOE score shown is calculated specifically for this individual image pair!</strong></p>
                             <p style="margin-top: 10px; font-size: 0.9em;">All ${this.selectedMethods.size} selected enhancement methods are displayed with their individual performance on this specific image.</p>
