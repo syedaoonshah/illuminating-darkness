@@ -946,14 +946,12 @@
             }
 
             async discoverAvailableImages() {
-                // Dataset-specific image names
+                // Dataset-specific image names - ONLY check these exact images
                 const datasetImages = {
                     'NPE': ['birds.png', 'harbor.png', 'night fall.png', 'Parking.png', 'rail.png', 'road.png', 'sculpture.png', 'skyscraper.png'],
                     'MEF': ['Balloons.png', 'BelgiumHouse.png', 'Cadik.png', 'Candle.png', 'Cave.png', 'ChineseGarden.png', 'Farmhouse.png', 'House.png', 'Kluki.png', 'Lamp.png', 'Landscape.png', 'LightHouse.png', 'Madison.png', 'Memorial.png', 'Office.png', 'Tower.png', 'Venice.png'],
-                    'LOL': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png',
-                           '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png'],
-                    'DICM': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png',
-                            '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png'],
+                    'LOL': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png', '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png'],
+                    'DICM': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png', '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png'],
                     'LIME': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png']
                 };
                 
@@ -961,14 +959,18 @@
                 
                 console.log(`🔍 Discovering images for selected datasets...`);
                 
-                // Check images for each selected dataset
+                // Check images for each selected dataset - ONLY check the predefined images
                 for (const dataset of this.selectedDatasets) {
                     console.log(`\n📁 Checking ${dataset} dataset...`);
                     
-                    const imagesToCheck = datasetImages[dataset] || [
-                        // Fallback to common patterns if dataset not defined
-                        '1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png'
-                    ];
+                    const imagesToCheck = datasetImages[dataset];
+                    
+                    if (!imagesToCheck) {
+                        console.warn(`   ⚠️ No predefined images for dataset: ${dataset}`);
+                        continue;
+                    }
+                    
+                    console.log(`   📋 Checking ${imagesToCheck.length} predefined images for ${dataset}...`);
                     
                     for (const imageName of imagesToCheck) {
                         try {
@@ -981,7 +983,7 @@
                                 console.log(`   ✗ Missing: ${imageName}`);
                             }
                         } catch (error) {
-                            console.log(`   ✗ Error checking: ${imageName}`);
+                            console.log(`   ✗ Error checking: ${imageName} - ${error.message}`);
                         }
                     }
                 }
@@ -992,35 +994,26 @@
                 console.log(`   🎯 Found ${availableImagesList.length} unique images across selected datasets`);
                 console.log(`   📋 Available images:`, availableImagesList);
                 
-                // If no images found, provide dataset-specific defaults for testing
+                // If no images found, don't provide defaults - return empty array
                 if (availableImagesList.length === 0) {
-                    console.warn('⚠️ No images found in any selected datasets. Using default images for testing.');
-                    
-                    // Return appropriate defaults based on selected datasets
-                    if (this.selectedDatasets.has('NPE')) {
-                        return ['birds.png', 'harbor.png', 'road.png'];
-                    } else if (this.selectedDatasets.has('MEF')) {
-                        return ['Balloons.png', 'House.png', 'Landscape.png'];
-                    } else {
-                        return ['1.png', '2.png', '3.png'];
-                    }
+                    console.warn('⚠️ No predefined images found in any selected datasets.');
+                    console.log('💡 Make sure your repository has the exact image names as defined in the dataset configuration.');
+                    return [];
                 }
                 
                 return availableImagesList;
             }
 
             async loadImageFromPath(imageUrl) {
-                return new Promise((resolve, reject) => {
+                return new Promise((resolve) => {
                     const img = new Image();
                     img.crossOrigin = 'anonymous'; // Enable CORS
                     
                     img.onload = () => {
-                        console.log(`✓ Successfully loaded: ${imageUrl}`);
                         resolve(img);
                     };
                     
                     img.onerror = () => {
-                        console.log(`✗ Failed to load: ${imageUrl}`);
                         resolve(null); // Return null instead of rejecting
                     };
                     
@@ -1029,10 +1022,9 @@
                     // Set a timeout to avoid hanging
                     setTimeout(() => {
                         if (!img.complete) {
-                            console.warn(`⏱ Timeout loading: ${imageUrl}`);
                             resolve(null);
                         }
-                    }, 10000); // 10 second timeout
+                    }, 5000); // Reduced timeout to 5 seconds for faster processing
                 });
             }
 
