@@ -1,4 +1,59 @@
-<!DOCTYPE html>
+populateMetricGrid() {
+                const grid = document.getElementById('metricGrid');
+                grid.innerHTML = '';
+                
+                QUALITY_METRICS.forEach(metric => {
+                    // Check if calculator is actually available
+                    const isCalculatorAvailable = this.metricCalculators[metric.id] !== undefined;
+                    const isDisabled = metric.disabled || !isCalculatorAvailable;
+                    
+                    const item = document.createElement('div');
+                    item.className = `checkbox-item ${isDisabled ? 'disabled' : ''}`;
+                    
+                    const typeIcon = metric.type === 'no-reference' ? '🔍' : '🔗';
+                    let statusText = '';
+                    if (metric.disabled) {
+                        statusText = ' (Coming Soon)';
+                    } else if (!isCalculatorAvailable) {
+                        statusText = ' (Calculator Not Loaded)';
+                    }
+                    
+                    item.innerHTML = `
+                        <input type="checkbox" id="metric-${metric.id}" value="${metric.id}" 
+                               ${isDisabled ? 'disabled' : ''} 
+                               ${metric.id === 'loe' && isCalculatorAvailable ? 'checked' : ''}>
+                        <label for="metric-${metric.id}" title="${metric.description}">
+                            ${typeIcon} <strong>${metric.name}</strong>${statusText}
+                            <br><small style="color: #666;">${metric.fullName}</small>
+                        </label>
+                    `;
+                    
+                    if (isDisabled) {
+                        item.style.opacity = '0.5';
+                        item.style.cursor = 'not-allowed';
+                    }
+                    
+                    const checkbox = item.querySelector('input');
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked && isCalculatorAvailable) {
+                            this.selectedMetrics.add(metric.id);
+                            if (!isDisabled) item.classList.add('selected');
+                        } else {
+                            this.selectedMetrics.delete(metric.id);
+                            item.classList.remove('selected');
+                        }
+                        this.updateBatchButton();
+                        this.updateSingleCalculateButton();
+                    });
+                    
+                    // Select LOE by default if available
+                    if (metric.id === 'loe' && isCalculatorAvailable) {
+                        item.classList.add('selected');
+                    }
+                    
+                    grid.appendChild(item);
+                });
+            }<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -620,7 +675,6 @@
     </div>
 
     <script src="loe-calculator.js"></script>
-    <script src="niqe-calculator.js"></script>
     <script>
         // Dataset and method definitions
         const DATASETS = ['LOL', 'DICM', 'NPE', 'LIME', 'MEF'];
@@ -716,18 +770,38 @@
                 this.individualScores = new Map(); // Store individual image scores for all metrics
                 this.datasetSpecificImages = new Map(); // Store available images per dataset
                 
-                // Initialize quality metric calculators
-                this.metricCalculators = {
-                    loe: new LOECalculator(),
-                    niqe: new NIQECalculator(),
-                    // Future calculators will be added here
-                    // psnr: new PSNRCalculator(),
-                    // ssim: new SSIMCalculator(),
-                    // lpips: new LPIPSCalculator(),
-                    // dists: new DISTSCalculator(),
-                    // pieapp: new PieAPPCalculator(),
-                    // brisque: new BRISQUECalculator()
-                };
+                // Initialize quality metric calculators with safety checks
+                this.metricCalculators = {};
+                
+                // Initialize available calculators
+                if (typeof LOECalculator !== 'undefined') {
+                    this.metricCalculators.loe = new LOECalculator();
+                    console.log('✅ LOE Calculator loaded');
+                } else {
+                    console.warn('⚠️ LOE Calculator not available');
+                }
+                
+                if (typeof NIQECalculator !== 'undefined') {
+                    this.metricCalculators.niqe = new NIQECalculator();
+                    console.log('✅ NIQE Calculator loaded');
+                } else {
+                    console.warn('⚠️ NIQE Calculator not available - disabling NIQE metric');
+                    // Disable NIQE in the metrics list
+                    const niqeMetric = QUALITY_METRICS.find(m => m.id === 'niqe');
+                    if (niqeMetric) {
+                        niqeMetric.disabled = true;
+                    }
+                    // Remove NIQE from default selection
+                    this.selectedMetrics.delete('niqe');
+                }
+                
+                // Future calculators will be added here with similar safety checks
+                /*
+                if (typeof PSNRCalculator !== 'undefined') {
+                    this.metricCalculators.psnr = new PSNRCalculator();
+                    console.log('✅ PSNR Calculator loaded');
+                }
+                */
                 
                 this.setupUI();
             }
@@ -1031,14 +1105,23 @@
                     const availableImages = await this.discoverAvailableImages();
                     
                     if (availableImages.length === 0) {
-                        throw new Error('No images found in the selected datasets. Please check the repository structure.');
+                        throw new Error('No images found in the selected datasets. Please check the repository structure.\n\nMake sure your images are accessible at:\nhttps://syedaoonshah.github.io/illuminating-darkness/datasets/[DATASET]/inputs/[IMAGE]');
                     }
                     
                     // Calculate total operations based on dataset-specific images
                     let totalOperations = 0;
+                    let hasAnyImages = false;
+                    
                     for (const dataset of this.selectedDatasets) {
                         const datasetImages = this.datasetSpecificImages.get(dataset) || [];
-                        totalOperations += datasetImages.length * this.selectedMethods.size;
+                        if (datasetImages.length > 0) {
+                            hasAnyImages = true;
+                            totalOperations += datasetImages.length * this.selectedMethods.size;
+                        }
+                    }
+                    
+                    if (!hasAnyImages) {
+                        throw new Error(`No images found in any of the selected datasets: ${Array.from(this.selectedDatasets).join(', ')}\n\nPlease verify that images exist at the expected URLs in your repository.`);
                     }
                     
                     let completedOperations = 0;
@@ -1046,7 +1129,8 @@
                     console.log(`🚀 Starting batch processing:`);
                     console.log(`   📊 ${this.selectedDatasets.size} datasets selected`);
                     console.log(`   🔧 ${this.selectedMethods.size} methods selected`);
-                    console.log(`   🎯 ${totalOperations} total LOE calculations`);
+                    console.log(`   📏 ${this.selectedMetrics.size} metrics selected: ${Array.from(this.selectedMetrics).join(', ')}`);
+                    console.log(`   🎯 ${totalOperations} total calculations`);
                     console.log(`   🌐 Loading from: https://syedaoonshah.github.io/illuminating-darkness/`);
                     console.log('');
                     
