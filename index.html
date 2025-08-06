@@ -999,7 +999,10 @@
                     // Return appropriate defaults based on selected datasets
                     if (this.selectedDatasets.has('NPE')) {
                         return ['birds.png', 'harbor.png', 'road.png'];
-                    } else {
+                    }if (this.selectedDatasets.has('MEF')) {
+                        return ['Balloons.png','BelgiumHouse.png','Cadik.png','Candle.png','Cave.png','ChineseGarden.png','Farmhouse.png','House.png','Kluki.png','Lamp.png','Landscape.png','LightHouse.png','Madison.png','Memorial.png','Office.png','Tower.png','Venice.png'];
+                    }
+                    else {
                         return ['1.png', '2.png', '3.png'];
                     }
                 }
