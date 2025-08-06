@@ -600,6 +600,7 @@
                 this.batchResults = new Map();
                 this.availableImages = new Set();
                 this.individualLOEScores = new Map(); // Store individual image LOE scores
+                this.datasetSpecificImages = new Map(); // Store available images per dataset
                 
                 this.setupUI();
             }
@@ -822,6 +823,7 @@
                 this.batchResults.clear();
                 this.availableImages.clear();
                 this.individualLOEScores = new Map(); // Reset individual scores
+                this.datasetSpecificImages = new Map(); // Reset dataset-specific images
                 
                 const progressFill = document.getElementById('progressFill');
                 const progressText = document.getElementById('progressText');
@@ -834,11 +836,16 @@
                         throw new Error('No images found in the selected datasets. Please check the repository structure.');
                     }
                     
-                    const totalOperations = this.selectedDatasets.size * this.selectedMethods.size * availableImages.length;
+                    // Calculate total operations based on dataset-specific images
+                    let totalOperations = 0;
+                    for (const dataset of this.selectedDatasets) {
+                        const datasetImages = this.datasetSpecificImages.get(dataset) || [];
+                        totalOperations += datasetImages.length * this.selectedMethods.size;
+                    }
+                    
                     let completedOperations = 0;
                     
                     console.log(`🚀 Starting batch processing:`);
-                    console.log(`   📁 ${availableImages.length} images found`);
                     console.log(`   📊 ${this.selectedDatasets.size} datasets selected`);
                     console.log(`   🔧 ${this.selectedMethods.size} methods selected`);
                     console.log(`   🎯 ${totalOperations} total LOE calculations`);
@@ -850,13 +857,24 @@
                             this.batchResults.set(dataset, new Map());
                         }
                         
+                        // Get dataset-specific images
+                        const datasetImages = this.datasetSpecificImages.get(dataset) || [];
+                        
+                        if (datasetImages.length === 0) {
+                            console.warn(`⚠️ No images found for ${dataset}, skipping...`);
+                            continue;
+                        }
+                        
+                        console.log(`\n📁 Processing ${dataset} dataset (${datasetImages.length} images)...`);
+                        
                         for (const method of this.selectedMethods) {
                             progressText.textContent = `Processing ${dataset} - ${method}...`;
                             
                             const loeScores = [];
                             let successfulProcessing = 0;
                             
-                            for (const imageName of availableImages) {
+                            // Process only the images that exist for this specific dataset
+                            for (const imageName of datasetImages) {
                                 try {
                                     progressText.textContent = `Processing ${dataset} - ${method} - ${imageName}`;
                                     
@@ -889,7 +907,7 @@
                                         }
                                         this.individualLOEScores.get(dataset).get(method).set(imageName, loeValue);
                                         
-                                        // Track available images for gallery (only for images that exist in all selected datasets)
+                                        // Track available images for gallery
                                         this.availableImages.add(imageName);
                                     } else {
                                         if (!inputImage) console.warn(`   ❌ Failed to load input: ${inputImageUrl}`);
@@ -916,17 +934,17 @@
                                     scores: loeScores,
                                     mean: meanLOE,
                                     processedImages: successfulProcessing,
-                                    totalImages: availableImages.length
+                                    totalImages: datasetImages.length
                                 });
                                 
-                                console.log(`${dataset}/${method}: Mean LOE = ${meanLOE.toFixed(2)} (${successfulProcessing}/${availableImages.length} images)`);
+                                console.log(`${dataset}/${method}: Mean LOE = ${meanLOE.toFixed(2)} (${successfulProcessing}/${datasetImages.length} images)`);
                             } else {
                                 console.warn(`No images processed successfully for ${dataset}/${method}`);
                                 this.batchResults.get(dataset).set(method, {
                                     scores: [],
                                     mean: null,
                                     processedImages: 0,
-                                    totalImages: availableImages.length
+                                    totalImages: datasetImages.length
                                 });
                             }
                         }
@@ -955,11 +973,12 @@
                     'LIME': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png']
                 };
                 
-                const availableImages = new Set(); // Use Set to avoid duplicates across datasets
+                // Store available images per dataset
+                this.datasetSpecificImages = new Map();
                 
                 console.log(`🔍 Discovering images for selected datasets...`);
                 
-                // Check images for each selected dataset - ONLY check the predefined images
+                // Check images for each selected dataset - keep them separate
                 for (const dataset of this.selectedDatasets) {
                     console.log(`\n📁 Checking ${dataset} dataset...`);
                     
@@ -972,12 +991,14 @@
                     
                     console.log(`   📋 Checking ${imagesToCheck.length} predefined images for ${dataset}...`);
                     
+                    const datasetAvailableImages = [];
+                    
                     for (const imageName of imagesToCheck) {
                         try {
                             const testImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/inputs/${imageName}`;
                             const testImage = await this.loadImageFromPath(testImageUrl);
                             if (testImage) {
-                                availableImages.add(imageName);
+                                datasetAvailableImages.push(imageName);
                                 console.log(`   ✓ Found: ${imageName}`);
                             } else {
                                 console.log(`   ✗ Missing: ${imageName}`);
@@ -986,22 +1007,27 @@
                             console.log(`   ✗ Error checking: ${imageName} - ${error.message}`);
                         }
                     }
+                    
+                    // Store the available images for this specific dataset
+                    this.datasetSpecificImages.set(dataset, datasetAvailableImages);
+                    console.log(`   📊 ${dataset}: Found ${datasetAvailableImages.length} images`);
                 }
-                
-                const availableImagesList = Array.from(availableImages);
                 
                 console.log(`\n📊 Discovery Summary:`);
-                console.log(`   🎯 Found ${availableImagesList.length} unique images across selected datasets`);
-                console.log(`   📋 Available images:`, availableImagesList);
-                
-                // If no images found, don't provide defaults - return empty array
-                if (availableImagesList.length === 0) {
-                    console.warn('⚠️ No predefined images found in any selected datasets.');
-                    console.log('💡 Make sure your repository has the exact image names as defined in the dataset configuration.');
-                    return [];
+                for (const [dataset, images] of this.datasetSpecificImages) {
+                    console.log(`   📁 ${dataset}: ${images.length} images - ${images.slice(0, 3).join(', ')}${images.length > 3 ? '...' : ''}`);
                 }
                 
-                return availableImagesList;
+                // Return a combined list for the image selector (just for display purposes)
+                const allAvailableImages = new Set();
+                for (const images of this.datasetSpecificImages.values()) {
+                    images.forEach(img => allAvailableImages.add(img));
+                }
+                
+                const combinedList = Array.from(allAvailableImages);
+                console.log(`   🎯 Combined unique images: ${combinedList.length}`);
+                
+                return combinedList;
             }
 
             async loadImageFromPath(imageUrl) {
