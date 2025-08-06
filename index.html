@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOE Calculator - Image Enhancement Quality Assessment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 20px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #4facfe;
+            border-bottom: 3px solid #4facfe;
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Single Image Mode Styles */
+        .upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .upload-box {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #fafafa;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-box:hover {
+            border-color: #4facfe;
+            background: #f0f9ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-box.dragover {
+            border-color: #00f2fe;
+            background: #e6f7ff;
+            transform: scale(1.02);
+        }
+
+        .upload-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #4facfe;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .preview-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .image-info {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Batch Processing Styles */
+        .batch-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .control-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .control-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .dataset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .method-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            border-color: #4facfe;
+            transform: translateY(-2px);
+        }
+
+        .checkbox-item.selected {
+            border-color: #4facfe;
+            background: #f0f9ff;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+            accent-color: #4facfe;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .calculate-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .calculate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loe-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #4facfe;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .loe-interpretation {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .batch-results-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .batch-results-table th,
+        .batch-results-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .batch-results-table th {
+            background: #4facfe;
+            color: white;
+            font-weight: 600;
+        }
+
+        .batch-results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .batch-results-table .loe-score {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .batch-results-table .mean-row {
+            background: #e3f2fd;
+            font-weight: bold;
+        }
+
+        .batch-results-table .mean-row td {
+            border-top: 2px solid #4facfe;
+        }
+
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .processing.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .image-gallery {
+            margin-top: 30px;
+        }
+
+        .gallery-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .image-selector {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .image-selector:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 100%;
+        }
+
+        .gallery-item {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .gallery-item h4 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+            word-wrap: break-word;
+        }
+
+        .gallery-item .loe-score {
+            color: #4facfe;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .info-section {
+            background: #e3f2fd;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .info-section h3 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .info-section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .upload-section, .batch-controls {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .tab-content {
+                padding: 20px;
+            }
+
+            .nav-tab {
+                padding: 15px 10px;
+                font-size: 1rem;
+            }
+
+            .dataset-grid, .method-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>LOE Calculator</h1>
+            <p>Lightness Order Error - Image Enhancement Quality Assessment</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('single')">Single Image Mode</button>
+            <button class="nav-tab" onclick="switchTab('batch')">Batch Processing</button>
+        </div>
+
+        <!-- Single Image Mode -->
+        <div id="single-tab" class="tab-content active">
+            <div class="upload-section">
+                <div class="upload-box" id="inputUpload">
+                    <div class="upload-icon">📷</div>
+                    <h3>Input Image</h3>
+                    <div class="upload-text">Drop your original image here or click to browse</div>
+                    <input type="file" class="file-input" id="inputFile" accept="image/*">
+                    <div class="preview-container" id="inputPreview"></div>
+                </div>
+
+                <div class="upload-box" id="enhancedUpload">
+                    <div class="upload-icon">✨</div>
+                    <h3>Enhanced Image</h3>
+                    <div class="upload-text">Drop your enhanced image here or click to browse</div>
+                    <input type="file" class="file-input" id="enhancedFile" accept="image/*">
+                    <div class="preview-container" id="enhancedPreview"></div>
+                </div>
+            </div>
+
+            <button class="calculate-btn" id="calculateBtn" disabled>Calculate LOE</button>
+
+            <div class="processing" id="processing">
+                <div class="spinner"></div>
+                <p>Processing images and calculating LOE...</p>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <div class="loe-value" id="loeValue">0.00</div>
+                <div class="loe-interpretation" id="loeInterpretation">
+                    Lower LOE values indicate better enhancement quality
+                </div>
+                <p><strong>Calculation completed!</strong> The LOE metric measures how well the enhanced image preserves the lightness order relationships of the original image.</p>
+            </div>
+        </div>
+
+        <!-- Batch Processing Mode -->
+        <div id="batch-tab" class="tab-content">
+            <div class="batch-controls">
+                <div class="control-section">
+                    <h3>Select Datasets</h3>
+                    <div class="dataset-grid" id="datasetGrid">
+                        <!-- Dataset checkboxes will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Select Enhancement Methods</h3>
+                    <div class="method-grid" id="methodGrid">
+                        <!-- Method checkboxes will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <button class="calculate-btn" id="batchCalculateBtn" disabled>Start Batch Processing</button>
+
+            <div class="processing" id="batchProcessing">
+                <div class="spinner"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Initializing...</div>
+            </div>
+
+            <div class="result-section" id="batchResultSection">
+                <h3>Batch Processing Results</h3>
+                <div id="batchResultsContent"></div>
+            </div>
+
+            <div class="image-gallery" id="imageGallery" style="display: none;">
+                <div class="gallery-controls">
+                    <h3>Image Comparison Gallery</h3>
+                    <select class="image-selector" id="imageSelector">
+                        <option value="">Select an image to compare...</option>
+                    </select>
+                </div>
+                <div class="gallery-grid" id="galleryGrid"></div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>About LOE (Lightness Order Error)</h3>
+            <p><strong>What is LOE?</strong> LOE is a no-reference image quality metric that evaluates enhancement algorithms by measuring how well they preserve the relative lightness ordering between pixels.</p>
+            <p><strong>How it works:</strong> The algorithm compares local maximum values in downsampled versions of both images and counts order reversals between pixel pairs.</p>
+            <p><strong>Interpretation:</strong> Lower LOE values indicate better enhancement quality, meaning the enhanced image better preserves the natural lightness relationships from the original.</p>
+            <p><strong>Batch Processing:</strong> Upload your datasets in the format: datasets/[DATASET]/inputs/ and datasets/[DATASET]/results/[METHOD]/ to enable automatic batch evaluation.</p>
+        </div>
+    </div>
+
+    <script>
+        // Dataset and method definitions
+        const DATASETS = ['LOL', 'DICM', 'NPE', 'LIME', 'MEF'];
+        const METHODS = [
+            'CFWD', 'GSAD', 'Wave-Mamba', 'PyDiff', 'LYT-Net', 'Jin et al', 
+            'HEP', 'SHAL-Net', 'AGLLDiff', 'LightenDiffusion', 'ZeroIG', 
+            'RRDNet', 'SGZ', 'Zero-DCE++', 'Zero-DCE'
+        ];
+
+        class LOECalculatorApp {
+            constructor() {
+                this.inputImage = null;
+                this.enhancedImage = null;
+                this.selectedDatasets = new Set();
+                this.selectedMethods = new Set();
+                this.batchResults = new Map();
+                this.availableImages = new Set();
+                this.individualLOEScores = new Map(); // Store individual image LOE scores
+                
+                this.setupUI();
+            }
+
+            setupUI() {
+                this.populateDatasetGrid();
+                this.populateMethodGrid();
+                this.setupSingleImageMode();
+                this.setupBatchMode();
+            }
+
+            populateDatasetGrid() {
+                const grid = document.getElementById('datasetGrid');
+                grid.innerHTML = '';
+                
+                DATASETS.forEach(dataset => {
+                    const item = document.createElement('div');
+                    item.className = 'checkbox-item';
+                    item.innerHTML = `
+                        <input type="checkbox" id="dataset-${dataset}" value="${dataset}">
+                        <label for="dataset-${dataset}">${dataset}</label>
+                    `;
+                    
+                    const checkbox = item.querySelector('input');
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            this.selectedDatasets.add(dataset);
+                            item.classList.add('selected');
+                        } else {
+                            this.selectedDatasets.delete(dataset);
+                            item.classList.remove('selected');
+                        }
+                        this.updateBatchButton();
+                    });
+                    
+                    grid.appendChild(item);
+                });
+            }
+
+            populateMethodGrid() {
+                const grid = document.getElementById('methodGrid');
+                grid.innerHTML = '';
+                
+                METHODS.forEach(method => {
+                    const item = document.createElement('div');
+                    item.className = 'checkbox-item';
+                    item.innerHTML = `
+                        <input type="checkbox" id="method-${method.replace(/\s+/g, '-')}" value="${method}">
+                        <label for="method-${method.replace(/\s+/g, '-')}">${method}</label>
+                    `;
+                    
+                    const checkbox = item.querySelector('input');
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            this.selectedMethods.add(method);
+                            item.classList.add('selected');
+                        } else {
+                            this.selectedMethods.delete(method);
+                            item.classList.remove('selected');
+                        }
+                        this.updateBatchButton();
+                    });
+                    
+                    grid.appendChild(item);
+                });
+            }
+
+            updateBatchButton() {
+                const btn = document.getElementById('batchCalculateBtn');
+                const isReady = this.selectedDatasets.size > 0 && this.selectedMethods.size > 0;
+                btn.disabled = !isReady;
+                
+                if (isReady) {
+                    btn.textContent = `Process ${this.selectedDatasets.size} Dataset(s) × ${this.selectedMethods.size} Method(s)`;
+                } else {
+                    btn.textContent = 'Start Batch Processing';
+                }
+            }
+
+            setupSingleImageMode() {
+                // File input handlers
+                document.getElementById('inputFile').addEventListener('change', (e) => {
+                    this.handleFileSelect(e, 'input');
+                });
+                document.getElementById('enhancedFile').addEventListener('change', (e) => {
+                    this.handleFileSelect(e, 'enhanced');
+                });
+
+                // Drag and drop handlers
+                this.setupDragAndDrop('inputUpload', 'inputFile', 'input');
+                this.setupDragAndDrop('enhancedUpload', 'enhancedFile', 'enhanced');
+
+                // Calculate button
+                document.getElementById('calculateBtn').addEventListener('click', () => {
+                    this.calculateSingleLOE();
+                });
+            }
+
+            setupBatchMode() {
+                document.getElementById('batchCalculateBtn').addEventListener('click', () => {
+                    this.startBatchProcessing();
+                });
+
+                document.getElementById('imageSelector').addEventListener('change', (e) => {
+                    this.showImageComparison(e.target.value);
+                });
+            }
+
+            setupDragAndDrop(uploadBoxId, fileInputId, type) {
+                const uploadBox = document.getElementById(uploadBoxId);
+                const fileInput = document.getElementById(fileInputId);
+
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadBox.addEventListener(eventName, this.preventDefaults, false);
+                });
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadBox.addEventListener(eventName, () => {
+                        uploadBox.classList.add('dragover');
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadBox.addEventListener(eventName, () => {
+                        uploadBox.classList.remove('dragover');
+                    }, false);
+                });
+
+                uploadBox.addEventListener('drop', (e) => {
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        fileInput.files = files;
+                        this.handleFileSelect({ target: fileInput }, type);
+                    }
+                }, false);
+            }
+
+            preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            handleFileSelect(event, type) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        if (type === 'input') {
+                            this.inputImage = img;
+                            this.showPreview(img, file, 'inputPreview');
+                        } else {
+                            this.enhancedImage = img;
+                            this.showPreview(img, file, 'enhancedPreview');
+                        }
+                        this.updateSingleCalculateButton();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            showPreview(img, file, containerId) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = `
+                    <img src="${img.src}" alt="Preview" class="preview-image">
+                    <div class="image-info">
+                        ${file.name}<br>
+                        ${img.width} × ${img.height} pixels<br>
+                        <small>${(file.size / 1024).toFixed(1)} KB</small>
+                    </div>
+                `;
+            }
+
+            updateSingleCalculateButton() {
+                const btn = document.getElementById('calculateBtn');
+                const isReady = this.inputImage && this.enhancedImage;
+                btn.disabled = !isReady;
+                
+                if (isReady) {
+                    const sameSize = this.inputImage.width === this.enhancedImage.width && 
+                                   this.inputImage.height === this.enhancedImage.height;
+                    
+                    if (!sameSize) {
+                        btn.innerHTML = `Calculate LOE<br><small style="font-size:0.8em;opacity:0.9">Images will be resized to ${this.inputImage.width}×${this.inputImage.height}</small>`;
+                    } else {
+                        btn.innerHTML = 'Calculate LOE';
+                    }
+                }
+            }
+
+            async calculateSingleLOE() {
+                document.getElementById('processing').classList.add('show');
+                document.getElementById('resultSection').classList.remove('show');
+
+                try {
+                    const targetWidth = this.inputImage.width;
+                    const targetHeight = this.inputImage.height;
+                    
+                    const inputData = this.getImageData(this.inputImage, targetWidth, targetHeight);
+                    const enhancedData = this.getImageData(this.enhancedImage, targetWidth, targetHeight);
+
+                    const loeValue = await this.computeLOE(inputData, enhancedData);
+                    this.showSingleResults(loeValue);
+                } catch (error) {
+                    console.error('LOE calculation error:', error);
+                    alert('Error calculating LOE: ' + error.message);
+                } finally {
+                    document.getElementById('processing').classList.remove('show');
+                }
+            }
+
+            async startBatchProcessing() {
+                document.getElementById('batchProcessing').classList.add('show');
+                document.getElementById('batchResultSection').classList.remove('show');
+                document.getElementById('imageGallery').style.display = 'none';
+                
+                this.batchResults.clear();
+                this.availableImages.clear();
+                this.individualLOEScores = new Map(); // Reset individual scores
+                
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                
+                try {
+                    // First, discover available images for selected datasets
+                    const availableImages = await this.discoverAvailableImages();
+                    
+                    if (availableImages.length === 0) {
+                        throw new Error('No images found in the selected datasets. Please check the repository structure.');
+                    }
+                    
+                    const totalOperations = this.selectedDatasets.size * this.selectedMethods.size * availableImages.length;
+                    let completedOperations = 0;
+                    
+                    console.log(`🚀 Starting batch processing:`);
+                    console.log(`   📁 ${availableImages.length} images found`);
+                    console.log(`   📊 ${this.selectedDatasets.size} datasets selected`);
+                    console.log(`   🔧 ${this.selectedMethods.size} methods selected`);
+                    console.log(`   🎯 ${totalOperations} total LOE calculations`);
+                    console.log(`   🌐 Loading from: https://syedaoonshah.github.io/illuminating-darkness/tree/main/`);
+                    console.log('');
+                    
+                    for (const dataset of this.selectedDatasets) {
+                        if (!this.batchResults.has(dataset)) {
+                            this.batchResults.set(dataset, new Map());
+                        }
+                        
+                        for (const method of this.selectedMethods) {
+                            progressText.textContent = `Processing ${dataset} - ${method}...`;
+                            
+                            const loeScores = [];
+                            let successfulProcessing = 0;
+                            
+                            for (const imageName of availableImages) {
+                                try {
+                                    progressText.textContent = `Processing ${dataset} - ${method} - ${imageName}`;
+                                    
+                                    // Load input and enhanced images using your GitHub Pages URLs
+                                    const inputImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${dataset}/inputs/${imageName}`;
+                                    const enhancedImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${dataset}/results/${method}/${imageName}`;
+                                    
+                                    console.log(`🔄 Processing: ${dataset}/${method}/${imageName}`);
+                                    
+                                    const inputImage = await this.loadImageFromPath(inputImageUrl);
+                                    const enhancedImage = await this.loadImageFromPath(enhancedImageUrl);
+                                    
+                                    if (inputImage && enhancedImage) {
+                                        // Calculate real LOE using your exact algorithm
+                                        const loeValue = await this.calculateRealLOE(inputImage, enhancedImage);
+                                        loeScores.push(loeValue);
+                                        successfulProcessing++;
+                                        
+                                        console.log(`   ✅ ${dataset}/${method}/${imageName}: LOE = ${loeValue.toFixed(2)}`);
+                                        
+                                        // Store individual image LOE scores for gallery display
+                                        if (!this.individualLOEScores) {
+                                            this.individualLOEScores = new Map();
+                                        }
+                                        if (!this.individualLOEScores.has(dataset)) {
+                                            this.individualLOEScores.set(dataset, new Map());
+                                        }
+                                        if (!this.individualLOEScores.get(dataset).has(method)) {
+                                            this.individualLOEScores.get(dataset).set(method, new Map());
+                                        }
+                                        this.individualLOEScores.get(dataset).get(method).set(imageName, loeValue);
+                                        
+                                        // Track available images for gallery (only for images that exist in all selected datasets)
+                                        this.availableImages.add(imageName);
+                                    } else {
+                                        if (!inputImage) console.warn(`   ❌ Failed to load input: ${inputImageUrl}`);
+                                        if (!enhancedImage) console.warn(`   ❌ Failed to load enhanced: ${enhancedImageUrl}`);
+                                    }
+                                    
+                                } catch (error) {
+                                    console.error(`   💥 Error processing ${dataset}/${method}/${imageName}:`, error.message);
+                                }
+                                
+                                completedOperations++;
+                                const progress = (completedOperations / totalOperations) * 100;
+                                progressFill.style.width = `${progress}%`;
+                                
+                                // Small delay to prevent browser freezing
+                                await this.simulateDelay(50);
+                            }
+                            
+                            // Calculate mean LOE for this method on this dataset
+                            if (loeScores.length > 0) {
+                                const meanLOE = loeScores.reduce((sum, score) => sum + score, 0) / loeScores.length;
+                                
+                                this.batchResults.get(dataset).set(method, {
+                                    scores: loeScores,
+                                    mean: meanLOE,
+                                    processedImages: successfulProcessing,
+                                    totalImages: availableImages.length
+                                });
+                                
+                                console.log(`${dataset}/${method}: Mean LOE = ${meanLOE.toFixed(2)} (${successfulProcessing}/${availableImages.length} images)`);
+                            } else {
+                                console.warn(`No images processed successfully for ${dataset}/${method}`);
+                                this.batchResults.get(dataset).set(method, {
+                                    scores: [],
+                                    mean: null,
+                                    processedImages: 0,
+                                    totalImages: availableImages.length
+                                });
+                            }
+                        }
+                    }
+                    
+                    progressText.textContent = 'Processing completed!';
+                    this.showBatchResults();
+                    
+                } catch (error) {
+                    console.error('Batch processing error:', error);
+                    alert('Error during batch processing: ' + error.message + '\n\nPlease check the console for detailed error information.');
+                } finally {
+                    setTimeout(() => {
+                        document.getElementById('batchProcessing').classList.remove('show');
+                    }, 1000);
+                }
+            }
+
+            async discoverAvailableImages() {
+                // Dataset-specific image names
+                const datasetImages = {
+                    'NPE': ['birds.png', 'harbor.png', 'night fall.png', 'Parking.png', 'rail.png', 'road.png', 'sculpture.png', 'skyscraper.png'],
+                    'LOL': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png',
+                           '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png'],
+                    'DICM': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png',
+                            '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png'],
+                    'LIME': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png'],
+                    'MEF': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png',
+                           '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png']
+                };
+                
+                const availableImages = new Set(); // Use Set to avoid duplicates across datasets
+                
+                console.log(`🔍 Discovering images for selected datasets...`);
+                
+                // Check images for each selected dataset
+                for (const dataset of this.selectedDatasets) {
+                    console.log(`\n📁 Checking ${dataset} dataset...`);
+                    
+                    const imagesToCheck = datasetImages[dataset] || [
+                        // Fallback to common patterns if dataset not defined
+                        '1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png'
+                    ];
+                    
+                    for (const imageName of imagesToCheck) {
+                        try {
+                            const testImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${dataset}/inputs/${imageName}`;
+                            const testImage = await this.loadImageFromPath(testImageUrl);
+                            if (testImage) {
+                                availableImages.add(imageName);
+                                console.log(`   ✓ Found: ${imageName}`);
+                            } else {
+                                console.log(`   ✗ Missing: ${imageName}`);
+                            }
+                        } catch (error) {
+                            console.log(`   ✗ Error checking: ${imageName}`);
+                        }
+                    }
+                }
+                
+                const availableImagesList = Array.from(availableImages);
+                
+                console.log(`\n📊 Discovery Summary:`);
+                console.log(`   🎯 Found ${availableImagesList.length} unique images across selected datasets`);
+                console.log(`   📋 Available images:`, availableImagesList);
+                
+                // If no images found, provide dataset-specific defaults for testing
+                if (availableImagesList.length === 0) {
+                    console.warn('⚠️ No images found in any selected datasets. Using default images for testing.');
+                    
+                    // Return appropriate defaults based on selected datasets
+                    if (this.selectedDatasets.has('NPE')) {
+                        return ['birds.png', 'harbor.png', 'road.png'];
+                    } else {
+                        return ['1.png', '2.png', '3.png'];
+                    }
+                }
+                
+                return availableImagesList;
+            }
+
+            async loadImageFromPath(imageUrl) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous'; // Enable CORS
+                    
+                    img.onload = () => {
+                        console.log(`✓ Successfully loaded: ${imageUrl}`);
+                        resolve(img);
+                    };
+                    
+                    img.onerror = () => {
+                        console.log(`✗ Failed to load: ${imageUrl}`);
+                        resolve(null); // Return null instead of rejecting
+                    };
+                    
+                    img.src = imageUrl;
+                    
+                    // Set a timeout to avoid hanging
+                    setTimeout(() => {
+                        if (!img.complete) {
+                            console.warn(`⏱ Timeout loading: ${imageUrl}`);
+                            resolve(null);
+                        }
+                    }, 10000); // 10 second timeout
+                });
+            }
+
+            async calculateRealLOE(inputImage, enhancedImage) {
+                // Ensure both images have the same dimensions (use input as reference)
+                const targetWidth = inputImage.width;
+                const targetHeight = inputImage.height;
+                
+                const inputData = this.getImageData(inputImage, targetWidth, targetHeight);
+                const enhancedData = this.getImageData(enhancedImage, targetWidth, targetHeight);
+                
+                // Use the same LOE algorithm as single image mode
+                return await this.computeLOE(inputData, enhancedData);
+            }
+
+            simulateDelay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            showBatchResults() {
+                const content = document.getElementById('batchResultsContent');
+                let html = '';
+                
+                // Create summary table for each dataset
+                for (const [dataset, methods] of this.batchResults) {
+                    html += `
+                        <h4 style="margin: 25px 0 15px 0; color: #333; font-size: 1.3rem;">${dataset} Dataset Results</h4>
+                        <table class="batch-results-table">
+                            <thead>
+                                <tr>
+                                    <th>Enhancement Method</th>
+                                    <th>Mean LOE Score</th>
+                                    <th>Images Processed</th>
+                                    <th>Performance Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    // Sort methods by mean LOE (lower is better), handling null values
+                    const sortedMethods = Array.from(methods.entries())
+                        .sort((a, b) => {
+                            if (a[1].mean === null) return 1;
+                            if (b[1].mean === null) return -1;
+                            return a[1].mean - b[1].mean;
+                        });
+                    
+                    sortedMethods.forEach(([method, data]) => {
+                        const rating = data.mean !== null ? this.getLOEPerformanceRating(data.mean) : 'No Data';
+                        const meanDisplay = data.mean !== null ? data.mean.toFixed(2) : 'N/A';
+                        
+                        html += `
+                            <tr>
+                                <td><strong>${method}</strong></td>
+                                <td class="loe-score">${meanDisplay}</td>
+                                <td>${data.processedImages}/${data.totalImages}</td>
+                                <td style="color: ${this.getRatingColor(rating)}">${rating}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    // Add overall best method row (only if we have valid data)
+                    const validMethods = sortedMethods.filter(([method, data]) => data.mean !== null);
+                    if (validMethods.length > 0) {
+                        const bestMethod = validMethods[0];
+                        html += `
+                                <tr class="mean-row">
+                                    <td><strong>Best Method: ${bestMethod[0]}</strong></td>
+                                    <td class="loe-score">${bestMethod[1].mean.toFixed(2)}</td>
+                                    <td>${bestMethod[1].processedImages}/${bestMethod[1].totalImages}</td>
+                                    <td style="color: ${this.getRatingColor(this.getLOEPerformanceRating(bestMethod[1].mean))}">
+                                        ${this.getLOEPerformanceRating(bestMethod[1].mean)}
+                                    </td>
+                                </tr>
+                        `;
+                    }
+                    
+                    html += `</tbody></table>`;
+                }
+                
+                // Add cross-dataset comparison if multiple datasets selected
+                if (this.selectedDatasets.size > 1) {
+                    html += this.createCrossDatasetComparison();
+                }
+                
+                // Add processing summary
+                html += this.createProcessingSummary();
+                
+                content.innerHTML = html;
+                document.getElementById('batchResultSection').classList.add('show');
+                
+                // Setup image gallery
+                this.setupImageGallery();
+            }
+
+            createProcessingSummary() {
+                let totalImages = 0;
+                let successfulProcessing = 0;
+                let totalMethods = 0;
+                let methodsWithData = 0;
+                
+                for (const [dataset, methods] of this.batchResults) {
+                    for (const [method, data] of methods) {
+                        totalMethods++;
+                        totalImages += data.totalImages;
+                        successfulProcessing += data.processedImages;
+                        if (data.mean !== null) methodsWithData++;
+                    }
+                }
+                
+                const successRate = totalImages > 0 ? (successfulProcessing / totalImages * 100).toFixed(1) : '0';
+                const methodSuccessRate = totalMethods > 0 ? (methodsWithData / totalMethods * 100).toFixed(1) : '0';
+                
+                // Get dataset-specific information
+                let datasetInfo = '';
+                for (const dataset of this.selectedDatasets) {
+                    const datasetImages = {
+                        'NPE': ['birds.png', 'harbor.png', 'night fall.png', 'Parking.png', 'rail.png', 'road.png', 'sculpture.png', 'skyscraper.png'],
+                        'LOL': '20+ numbered images (1.png - 20.png)',
+                        'DICM': '20+ numbered images (1.png - 20.png)', 
+                        'LIME': '10 numbered images (1.png - 10.png)',
+                        'MEF': '17 numbered images (1.png - 17.png)'
+                    };
+                    
+                    const images = datasetImages[dataset];
+                    if (Array.isArray(images)) {
+                        datasetInfo += `<li><strong>${dataset}:</strong> ${images.length} images (${images.slice(0, 3).join(', ')}${images.length > 3 ? '...' : ''})</li>`;
+                    } else {
+                        datasetInfo += `<li><strong>${dataset}:</strong> ${images}</li>`;
+                    }
+                }
+                
+                return `
+                    <div style="background: #e8f5e8; border-radius: 10px; padding: 20px; margin-top: 25px;">
+                        <h4 style="color: #2e7d32; margin-bottom: 15px;">📊 Processing Summary</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div>
+                                <strong>Total Images Attempted:</strong><br>
+                                <span style="font-size: 1.2em; color: #2e7d32;">${totalImages}</span>
+                            </div>
+                            <div>
+                                <strong>Successfully Processed:</strong><br>
+                                <span style="font-size: 1.2em; color: #2e7d32;">${successfulProcessing}</span>
+                            </div>
+                            <div>
+                                <strong>Success Rate:</strong><br>
+                                <span style="font-size: 1.2em; color: #2e7d32;">${successRate}%</span>
+                            </div>
+                            <div>
+                                <strong>Methods with Data:</strong><br>
+                                <span style="font-size: 1.2em; color: #2e7d32;">${methodsWithData}/${totalMethods} (${methodSuccessRate}%)</span>
+                            </div>
+                        </div>
+                        
+                        <div style="background: white; border-radius: 8px; padding: 15px; margin-top: 15px;">
+                            <h5 style="color: #1976d2; margin-bottom: 10px;">📁 Dataset Image Information:</h5>
+                            <ul style="margin: 0; padding-left: 20px; color: #666;">
+                                ${datasetInfo}
+                            </ul>
+                        </div>
+                        
+                        <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                            <strong>🧮 Algorithm:</strong> LOE values calculated using the exact MATLAB algorithm. Lower scores indicate better enhancement quality.
+                            <br><strong>🌐 Source:</strong> Images loaded from <code>https://syedaoonshah.github.io/illuminating-darkness/</code>
+                        </p>
+                    </div>
+                `;
+            }
+
+            createCrossDatasetComparison() {
+                let html = `
+                    <h4 style="margin: 35px 0 15px 0; color: #333; font-size: 1.3rem;">Cross-Dataset Performance Comparison</h4>
+                    <table class="batch-results-table">
+                        <thead>
+                            <tr>
+                                <th>Enhancement Method</th>
+                `;
+                
+                // Add dataset columns
+                for (const dataset of this.selectedDatasets) {
+                    html += `<th>${dataset}</th>`;
+                }
+                html += `<th>Overall Average</th></tr></thead><tbody>`;
+                
+                // Calculate overall averages for each method
+                const methodAverages = new Map();
+                
+                for (const method of this.selectedMethods) {
+                    const scores = [];
+                    html += `<tr><td><strong>${method}</strong></td>`;
+                    
+                    for (const dataset of this.selectedDatasets) {
+                        const methodData = this.batchResults.get(dataset)?.get(method);
+                        if (methodData) {
+                            html += `<td class="loe-score">${methodData.mean.toFixed(2)}</td>`;
+                            scores.push(methodData.mean);
+                        } else {
+                            html += `<td>-</td>`;
+                        }
+                    }
+                    
+                    const overallAverage = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+                    methodAverages.set(method, overallAverage);
+                    html += `<td class="loe-score" style="background: #f0f9ff;"><strong>${overallAverage.toFixed(2)}</strong></td>`;
+                    html += `</tr>`;
+                }
+                
+                // Add best overall method
+                const bestOverallMethod = Array.from(methodAverages.entries())
+                    .sort((a, b) => a[1] - b[1])[0];
+                
+                html += `
+                    <tr class="mean-row">
+                        <td><strong>Best Overall: ${bestOverallMethod[0]}</strong></td>
+                `;
+                
+                for (let i = 0; i < this.selectedDatasets.size; i++) {
+                    html += `<td>-</td>`;
+                }
+                html += `<td class="loe-score"><strong>${bestOverallMethod[1].toFixed(2)}</strong></td>`;
+                html += `</tr></tbody></table>`;
+                
+                return html;
+            }
+
+            getLOEPerformanceRating(loeValue) {
+                if (loeValue < 35) return 'Excellent';
+                if (loeValue < 50) return 'Good';
+                if (loeValue < 65) return 'Fair';
+                return 'Poor';
+            }
+
+            getRatingColor(rating) {
+                const colors = {
+                    'Excellent': '#4caf50',
+                    'Good': '#8bc34a',
+                    'Fair': '#ff9800',
+                    'Poor': '#f44336'
+                };
+                return colors[rating] || '#666';
+            }
+
+            setupImageGallery() {
+                const selector = document.getElementById('imageSelector');
+                selector.innerHTML = '<option value="">Select an image to compare...</option>';
+                
+                // Populate image selector with available images
+                const sortedImages = Array.from(this.availableImages).sort();
+                sortedImages.forEach(imageName => {
+                    const option = document.createElement('option');
+                    option.value = imageName;
+                    option.textContent = imageName;
+                    selector.appendChild(option);
+                });
+                
+                document.getElementById('imageGallery').style.display = 'block';
+            }
+
+            showImageComparison(imageName) {
+                if (!imageName) {
+                    document.getElementById('galleryGrid').innerHTML = '';
+                    return;
+                }
+                
+                const gallery = document.getElementById('galleryGrid');
+                gallery.innerHTML = '';
+                
+                // Show input image first
+                const selectedDataset = Array.from(this.selectedDatasets)[0]; // Use first selected dataset
+                
+                const inputItem = document.createElement('div');
+                inputItem.className = 'gallery-item';
+                
+                // Load actual input image from your GitHub Pages
+                const inputUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${selectedDataset}/inputs/${imageName}`;
+                inputItem.innerHTML = `
+                    <img src="${inputUrl}" alt="Input Image" 
+                         onerror="this.src='https://via.placeholder.com/250x200/f0f0f0/666?text=Input+Not+Found'; this.title='${inputUrl} not found';"
+                         title="Input: ${imageName}">
+                    <h4>Input (${selectedDataset})</h4>
+                    <div class="loe-score">Original</div>
+                `;
+                gallery.appendChild(inputItem);
+                
+                // Show results from ALL selected methods (no limit)
+                let count = 0;
+                for (const method of this.selectedMethods) {
+                    // Get individual LOE score for this specific image and method
+                    const individualLOE = this.individualLOEScores?.get(selectedDataset)?.get(method)?.get(imageName);
+                    
+                    if (individualLOE !== undefined) {
+                        const item = document.createElement('div');
+                        item.className = 'gallery-item';
+                        
+                        // Load actual enhanced image from your GitHub Pages
+                        const resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${selectedDataset}/results/${method}/${imageName}`;
+                        item.innerHTML = `
+                            <img src="${resultUrl}" alt="${method} Result" 
+                                 onerror="this.src='https://via.placeholder.com/250x200/ffebee/c62828?text=${method.replace(/\s+/g, '+')}+Not+Found'; this.title='${resultUrl} not found';"
+                                 title="${method}: ${imageName}">
+                            <h4>${method}</h4>
+                            <div class="loe-score">LOE: ${individualLOE.toFixed(2)}</div>
+                        `;
+                        gallery.appendChild(item);
+                        count++;
+                    } else {
+                        // If no individual score available, check if method has any data for this dataset
+                        const methodData = this.batchResults.get(selectedDataset)?.get(method);
+                        if (methodData && methodData.mean !== null) {
+                            const item = document.createElement('div');
+                            item.className = 'gallery-item';
+                            
+                            const resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${selectedDataset}/results/${method}/${imageName}`;
+                            item.innerHTML = `
+                                <img src="${resultUrl}" alt="${method} Result" 
+                                     onerror="this.src='https://via.placeholder.com/250x200/fff3e0/e65100?text=${method.replace(/\s+/g, '+')}+Processing'; this.title='${resultUrl} - processing or not found';"
+                                     title="${method}: ${imageName}">
+                                <h4>${method}</h4>
+                                <div class="loe-score" style="color: #ff9800;">Processing...</div>
+                            `;
+                            gallery.appendChild(item);
+                            count++;
+                        }
+                    }
+                }
+                
+                // Add information about the real image loading
+                if (count > 0 || Array.from(this.selectedMethods).length > 0) {
+                    const noteItem = document.createElement('div');
+                    noteItem.style.gridColumn = '1 / -1';
+                    noteItem.style.textAlign = 'center';
+                    noteItem.style.padding = '20px';
+                    noteItem.style.color = '#666';
+                    noteItem.style.background = '#f0f9ff';
+                    noteItem.style.borderRadius = '10px';
+                    noteItem.style.marginTop = '20px';
+                    noteItem.style.border = '2px solid #e3f2fd';
+                    noteItem.innerHTML = `
+                        <h4 style="color: #1976d2; margin-bottom: 15px;">🎯 Individual Image LOE Scores</h4>
+                        <p><strong>Selected Image:</strong> <code>${imageName}</code> | <strong>Methods Displayed:</strong> ${count} of ${this.selectedMethods.size} selected</p>
+                        <p><strong>Input URL:</strong> <code>${inputUrl}</code></p>
+                        <p><strong>Enhanced URLs:</strong> <code>https://syedaoonshah.github.io/illuminating-darkness/tree/main/datasets/${selectedDataset}/results/[METHOD]/${imageName}</code></p>
+                        <div style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
+                            <p style="color: #2e7d32;"><strong>✅ Each LOE score shown is calculated specifically for this individual image pair!</strong></p>
+                            <p style="margin-top: 10px; font-size: 0.9em;">All ${this.selectedMethods.size} selected enhancement methods are displayed with their individual performance on this specific image.</p>
+                        </div>
+                    `;
+                    gallery.appendChild(noteItem);
+                }
+            }
+
+            getImageData(img, targetWidth = null, targetHeight = null) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const width = targetWidth || img.width;
+                const height = targetHeight || img.height;
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                return ctx.getImageData(0, 0, width, height);
+            }
+
+            async computeLOE(inputData, enhancedData) {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            const result = this.loeAlgorithm(inputData, enhancedData);
+                            resolve(result);
+                        } catch (error) {
+                            console.error('Error in LOE algorithm:', error);
+                            reject(error);
+                        }
+                    }, 100);
+                });
+            }
+
+            loeAlgorithm(inputData, enhancedData) {
+                const { width, height } = inputData;
+                const m = height;
+                const n = width;
+                
+                // Convert to grayscale and get local maxima
+                const win = 7;
+                const inputGray = this.rgbToGray(inputData);
+                const enhancedGray = this.rgbToGray(enhancedData);
+                
+                const imax = this.getLocalMax(inputGray, n, m, win);
+                const emax = this.getLocalMax(enhancedGray, n, m, win);
+                
+                // Downsample
+                const blkwin = 50;
+                const mind = Math.min(m, n);
+                const step = Math.max(1, Math.floor(mind / blkwin));
+                const blkm = Math.floor(m / step);
+                const blkn = Math.floor(n / step);
+                
+                if (blkm <= 0 || blkn <= 0) {
+                    throw new Error(`Invalid block dimensions: ${blkn}x${blkm}`);
+                }
+                
+                const ipic_ds = [];
+                const epic_ds = [];
+                
+                for (let i = 0; i < blkm; i++) {
+                    ipic_ds[i] = [];
+                    epic_ds[i] = [];
+                    for (let j = 0; j < blkn; j++) {
+                        const row = Math.min(i * step, m - 1);
+                        const col = Math.min(j * step, n - 1);
+                        ipic_ds[i][j] = imax[row][col];
+                        epic_ds[i][j] = emax[row][col];
+                    }
+                }
+                
+                // Calculate LOE
+                let totalLOE = 0;
+                for (let i = 0; i < blkm; i++) {
+                    for (let j = 0; j < blkn; j++) {
+                        let loe = 0;
+                        for (let p = 0; p < blkm; p++) {
+                            for (let q = 0; q < blkn; q++) {
+                                const flag1 = ipic_ds[p][q] >= ipic_ds[i][j];
+                                const flag2 = epic_ds[p][q] >= epic_ds[i][j];
+                                if (flag1 !== flag2) {
+                                    loe++;
+                                }
+                            }
+                        }
+                        totalLOE += loe;
+                    }
+                }
+                
+                return totalLOE / (blkm * blkn);
+            }
+
+            rgbToGray(imageData) {
+                const { data, width, height } = imageData;
+                const gray = [];
+                
+                for (let i = 0; i < height; i++) {
+                    gray[i] = [];
+                    for (let j = 0; j < width; j++) {
+                        const idx = (i * width + j) * 4;
+                        const r = data[idx];
+                        const g = data[idx + 1];
+                        const b = data[idx + 2];
+                        gray[i][j] = Math.max(r, g, b);
+                    }
+                }
+                return gray;
+            }
+
+            getLocalMax(image, width, height, win) {
+                const extImage = this.extendImage(image, width, height, win);
+                const output = [];
+                
+                for (let i = 0; i < height; i++) {
+                    output[i] = [];
+                    for (let j = 0; j < width; j++) {
+                        let max = 0;
+                        for (let di = -win; di <= win; di++) {
+                            for (let dj = -win; dj <= win; dj++) {
+                                const extRow = i + win + di;
+                                const extCol = j + win + dj;
+                                if (extImage[extRow] && extImage[extRow][extCol] !== undefined) {
+                                    const val = extImage[extRow][extCol];
+                                    if (val > max) max = val;
+                                }
+                            }
+                        }
+                        output[i][j] = max;
+                    }
+                }
+                return output;
+            }
+
+            extendImage(image, width, height, winSize) {
+                const extended = [];
+                const newHeight = height + 2 * winSize;
+                const newWidth = width + 2 * winSize;
+                
+                for (let i = 0; i < newHeight; i++) {
+                    extended[i] = new Array(newWidth).fill(0);
+                }
+                
+                for (let i = 0; i < height; i++) {
+                    for (let j = 0; j < width; j++) {
+                        extended[i + winSize][j + winSize] = image[i][j];
+                    }
+                }
+                
+                for (let i = 0; i < winSize; i++) {
+                    for (let j = winSize; j < winSize + width; j++) {
+                        extended[winSize - 1 - i][j] = extended[winSize + 1 + i][j];
+                        extended[height + winSize + i][j] = extended[height + winSize - 2 - i][j];
+                    }
+                }
+                
+                for (let i = 0; i < newHeight; i++) {
+                    for (let j = 0; j < winSize; j++) {
+                        extended[i][winSize - 1 - j] = extended[i][winSize + 1 + j];
+                        extended[i][width + winSize + j] = extended[i][width + winSize - 2 - j];
+                    }
+                }
+                
+                return extended;
+            }
+
+            showSingleResults(loeValue) {
+                const sameSize = this.inputImage.width === this.enhancedImage.width && 
+                               this.inputImage.height === this.enhancedImage.height;
+                
+                let interpretation = '';
+                if (loeValue < 50) {
+                    interpretation = 'Excellent enhancement quality - very good preservation of lightness order';
+                } else if (loeValue < 100) {
+                    interpretation = 'Good enhancement quality - acceptable lightness order preservation';
+                } else if (loeValue < 200) {
+                    interpretation = 'Fair enhancement quality - some lightness order distortion';
+                } else {
+                    interpretation = 'Poor enhancement quality - significant lightness order distortion';
+                }
+                
+                const resultSection = document.getElementById('resultSection');
+                if (!resultSection) {
+                    console.error('Result section not found');
+                    return;
+                }
+                
+                let dimensionNote = '';
+                if (!sameSize) {
+                    dimensionNote = `<p style="font-size:0.9em;color:#666;margin-top:15px;">
+                        <strong>Note:</strong> Enhanced image was resized from ${this.enhancedImage.width}×${this.enhancedImage.height} 
+                        to ${this.inputImage.width}×${this.inputImage.height} for comparison.
+                    </p>`;
+                }
+                
+                resultSection.innerHTML = `
+                    <div class="loe-value" id="loeValue">${loeValue.toFixed(2)}</div>
+                    <div class="loe-interpretation" id="loeInterpretation">${interpretation}</div>
+                    <p><strong>Calculation completed!</strong> The LOE metric measures how well the enhanced image preserves the lightness order relationships of the original image.</p>
+                    ${dimensionNote}
+                `;
+                
+                resultSection.classList.add('show');
+            }
+        }
+
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new LOECalculatorApp();
+        });
+    </script>
+</body>
+</html>
