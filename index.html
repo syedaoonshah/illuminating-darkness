@@ -1297,20 +1297,64 @@
                 const selector = document.getElementById('imageSelector');
                 selector.innerHTML = '<option value="">Select an image to compare...</option>';
                 
-                // Populate image selector with available images
-                const sortedImages = Array.from(this.availableImages).sort();
-                sortedImages.forEach(imageName => {
+                // Populate image selector with images from ALL selected datasets
+                const allImages = new Set();
+                
+                // Add images from each dataset with dataset prefix for clarity
+                for (const [dataset, images] of this.datasetSpecificImages) {
+                    images.forEach(imageName => {
+                        allImages.add(`${dataset}:${imageName}`);
+                    });
+                }
+                
+                // Sort images by dataset then by name
+                const sortedImages = Array.from(allImages).sort((a, b) => {
+                    const [datasetA, nameA] = a.split(':');
+                    const [datasetB, nameB] = b.split(':');
+                    if (datasetA !== datasetB) {
+                        return datasetA.localeCompare(datasetB);
+                    }
+                    return nameA.localeCompare(nameB);
+                });
+                
+                // Group images by dataset in the dropdown
+                let currentDataset = '';
+                sortedImages.forEach(imageKey => {
+                    const [dataset, imageName] = imageKey.split(':');
+                    
+                    // Add dataset separator
+                    if (dataset !== currentDataset) {
+                        if (currentDataset !== '') {
+                            // Add separator
+                            const separator = document.createElement('option');
+                            separator.disabled = true;
+                            separator.textContent = '────────────';
+                            selector.appendChild(separator);
+                        }
+                        
+                        // Add dataset header
+                        const header = document.createElement('option');
+                        header.disabled = true;
+                        header.textContent = `📁 ${dataset} Dataset`;
+                        header.style.fontWeight = 'bold';
+                        header.style.backgroundColor = '#f0f9ff';
+                        selector.appendChild(header);
+                        
+                        currentDataset = dataset;
+                    }
+                    
                     const option = document.createElement('option');
-                    option.value = imageName;
-                    option.textContent = imageName;
+                    option.value = imageKey; // Store as "dataset:imageName"
+                    option.textContent = `   ${imageName}`;
                     selector.appendChild(option);
                 });
                 
+                console.log(`🖼️ Gallery setup: ${sortedImages.length} images from ${this.datasetSpecificImages.size} datasets`);
                 document.getElementById('imageGallery').style.display = 'block';
             }
 
-            showImageComparison(imageName) {
-                if (!imageName) {
+            showImageComparison(imageKey) {
+                if (!imageKey) {
                     document.getElementById('galleryGrid').innerHTML = '';
                     return;
                 }
@@ -1318,8 +1362,15 @@
                 const gallery = document.getElementById('galleryGrid');
                 gallery.innerHTML = '';
                 
-                // Show input image first
-                const selectedDataset = Array.from(this.selectedDatasets)[0]; // Use first selected dataset
+                // Parse the imageKey to get dataset and image name
+                const [selectedDataset, imageName] = imageKey.split(':');
+                
+                if (!selectedDataset || !imageName) {
+                    console.error('Invalid image key:', imageKey);
+                    return;
+                }
+                
+                console.log(`🖼️ Showing comparison for ${selectedDataset}/${imageName}`);
                 
                 const inputItem = document.createElement('div');
                 inputItem.className = 'gallery-item';
@@ -1390,12 +1441,12 @@
                     noteItem.style.border = '2px solid #e3f2fd';
                     noteItem.innerHTML = `
                         <h4 style="color: #1976d2; margin-bottom: 15px;">🎯 Individual Image LOE Scores</h4>
-                        <p><strong>Selected Image:</strong> <code>${imageName}</code> | <strong>Methods Displayed:</strong> ${count} of ${this.selectedMethods.size} selected</p>
+                        <p><strong>Selected Image:</strong> <code>${selectedDataset}/${imageName}</code> | <strong>Methods Displayed:</strong> ${count} of ${this.selectedMethods.size} selected</p>
                         <p><strong>Input URL:</strong> <code>${inputUrl}</code></p>
                         <p><strong>Enhanced URLs:</strong> <code>https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/[METHOD]/${imageName}</code></p>
                         <div style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
                             <p style="color: #2e7d32;"><strong>✅ Each LOE score shown is calculated specifically for this individual image pair!</strong></p>
-                            <p style="margin-top: 10px; font-size: 0.9em;">All ${this.selectedMethods.size} selected enhancement methods are displayed with their individual performance on this specific image.</p>
+                            <p style="margin-top: 10px; font-size: 0.9em;">All ${this.selectedMethods.size} selected enhancement methods are displayed with their individual performance on this specific image from the ${selectedDataset} dataset.</p>
                         </div>
                     `;
                     gallery.appendChild(noteItem);
