@@ -212,6 +212,19 @@
             background: #f0f9ff;
         }
 
+        .checkbox-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .checkbox-item.disabled input[type="checkbox"] {
+            cursor: not-allowed;
+        }
+
+        .checkbox-item.disabled label {
+            cursor: not-allowed;
+        }
+
         .checkbox-item input[type="checkbox"] {
             margin-right: 10px;
             transform: scale(1.2);
@@ -484,8 +497,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>LOE Calculator</h1>
-            <p>Lightness Order Error - Image Enhancement Quality Assessment</p>
+            <h1>Image Quality Assessment Suite</h1>
+            <p>Multi-Metric Image Enhancement Quality Evaluation Platform</p>
         </div>
 
         <div class="nav-tabs">
@@ -513,7 +526,7 @@
                 </div>
             </div>
 
-            <button class="calculate-btn" id="calculateBtn" disabled>Calculate LOE</button>
+            <button class="calculate-btn" id="calculateBtn" disabled>Calculate Quality Metrics</button>
 
             <div class="processing" id="processing">
                 <div class="spinner"></div>
@@ -547,6 +560,13 @@
                 </div>
             </div>
 
+            <div class="control-section" style="margin-bottom: 30px;">
+                <h3>Select Quality Metrics</h3>
+                <div class="method-grid" id="metricGrid">
+                    <!-- Quality metric checkboxes will be populated by JavaScript -->
+                </div>
+            </div>
+
             <button class="calculate-btn" id="batchCalculateBtn" disabled>Start Batch Processing</button>
 
             <div class="processing" id="batchProcessing">
@@ -574,8 +594,25 @@
         </div>
 
         <div class="info-section">
-            <h3>About LOE (Lightness Order Error)</h3>
-            <p><strong>What is LOE?</strong> LOE is a no-reference image quality metric that evaluates enhancement algorithms by measuring how well they preserve the relative lightness ordering between pixels.</p>
+            <h3>About Image Quality Assessment</h3>
+            <p><strong>Multi-Metric Evaluation:</strong> This platform supports multiple quality assessment metrics to provide comprehensive evaluation of image enhancement algorithms.</p>
+            
+            <div style="margin: 20px 0;">
+                <h4 style="color: #1976d2; margin-bottom: 10px;">🔍 No-Reference Metrics</h4>
+                <p><strong>LOE (Lightness Order Error):</strong> Measures preservation of lightness order relationships between pixels.</p>
+                <p><strong>NIQE (Natural Image Quality Evaluator):</strong> Evaluates naturalness based on scene statistics without requiring reference images.</p>
+                <p><strong>BRISQUE:</strong> Blind quality assessment using natural scene statistics (Coming Soon).</p>
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <h4 style="color: #1976d2; margin-bottom: 10px;">🔗 Full-Reference Metrics</h4>
+                <p><strong>PSNR:</strong> Peak Signal-to-Noise Ratio measures signal fidelity (Coming Soon).</p>
+                <p><strong>SSIM:</strong> Structural Similarity Index assesses structural similarity (Coming Soon).</p>
+                <p><strong>LPIPS:</strong> Learned Perceptual Image Patch Similarity using deep learning (Coming Soon).</p>
+            </div>
+            
+            <p><strong>Batch Processing:</strong> Upload datasets in the format: datasets/[DATASET]/inputs/ and datasets/[DATASET]/results/[METHOD]/ to enable automatic evaluation across multiple metrics.</p>
+        </div>.</p>
             <p><strong>How it works:</strong> The algorithm compares local maximum values in downsampled versions of both images and counts order reversals between pixel pairs.</p>
             <p><strong>Interpretation:</strong> Lower LOE values indicate better enhancement quality, meaning the enhanced image better preserves the natural lightness relationships from the original.</p>
             <p><strong>Batch Processing:</strong> Upload your datasets in the format: datasets/[DATASET]/inputs/ and datasets/[DATASET]/results/[METHOD]/ to enable automatic batch evaluation.</p>
@@ -592,19 +629,104 @@
             'RRDNet', 'SGZ', 'Zero-DCE++', 'Zero-DCE'
         ];
 
-        class LOECalculatorApp {
+        // Available quality metrics
+        const QUALITY_METRICS = [
+            { 
+                id: 'loe', 
+                name: 'LOE', 
+                fullName: 'Lightness Order Error',
+                type: 'no-reference',
+                lowerIsBetter: true,
+                description: 'Measures preservation of lightness order relationships'
+            },
+            { 
+                id: 'niqe', 
+                name: 'NIQE', 
+                fullName: 'Natural Image Quality Evaluator',
+                type: 'no-reference',
+                lowerIsBetter: true,
+                description: 'Evaluates naturalness based on scene statistics'
+            },
+            { 
+                id: 'psnr', 
+                name: 'PSNR', 
+                fullName: 'Peak Signal-to-Noise Ratio',
+                type: 'full-reference',
+                lowerIsBetter: false,
+                description: 'Measures signal fidelity between images',
+                disabled: true
+            },
+            { 
+                id: 'ssim', 
+                name: 'SSIM', 
+                fullName: 'Structural Similarity Index',
+                type: 'full-reference',
+                lowerIsBetter: false,
+                description: 'Assesses structural similarity between images',
+                disabled: true
+            },
+            { 
+                id: 'lpips', 
+                name: 'LPIPS', 
+                fullName: 'Learned Perceptual Image Patch Similarity',
+                type: 'full-reference',
+                lowerIsBetter: true,
+                description: 'Deep learning-based perceptual similarity',
+                disabled: true
+            },
+            { 
+                id: 'dists', 
+                name: 'DISTS', 
+                fullName: 'Deep Image Structure and Texture Similarity',
+                type: 'full-reference',
+                lowerIsBetter: true,
+                description: 'Structure and texture similarity using deep features',
+                disabled: true
+            },
+            { 
+                id: 'pieapp', 
+                name: 'PieAPP', 
+                fullName: 'Perceptual Image-Error Assessment through Pairwise Preference',
+                type: 'full-reference',
+                lowerIsBetter: true,
+                description: 'Human preference-based quality assessment',
+                disabled: true
+            },
+            { 
+                id: 'brisque', 
+                name: 'BRISQUE', 
+                fullName: 'Blind/Referenceless Image Spatial Quality Evaluator',
+                type: 'no-reference',
+                lowerIsBetter: true,
+                description: 'Blind quality assessment using natural scene statistics',
+                disabled: true
+            }
+        ];
+
+        class ImageQualityAssessmentApp {
             constructor() {
                 this.inputImage = null;
                 this.enhancedImage = null;
                 this.selectedDatasets = new Set();
                 this.selectedMethods = new Set();
+                this.selectedMetrics = new Set(['loe']); // Default to LOE
                 this.batchResults = new Map();
                 this.availableImages = new Set();
-                this.individualLOEScores = new Map(); // Store individual image LOE scores
+                this.individualScores = new Map(); // Store individual image scores for all metrics
                 this.datasetSpecificImages = new Map(); // Store available images per dataset
                 
-                // Initialize LOE calculator
-                this.loeCalculator = new LOECalculator();
+                // Initialize quality metric calculators
+                this.metricCalculators = {
+                    loe: new LOECalculator(),
+                    niqe: new NIQECalculator(),
+                    // Future calculators will be added here
+                    // psnr: new PSNRCalculator(),
+                    // ssim: new SSIMCalculator(),
+                    // lpips: new LPIPSCalculator(),
+                    // dists: new DISTSCalculator(),
+                    // pieapp: new PieAPPCalculator(),
+                    // brisque: new BRISQUECalculator()
+                };
                 
                 this.setupUI();
             }
@@ -612,6 +734,7 @@
             setupUI() {
                 this.populateDatasetGrid();
                 this.populateMethodGrid();
+                this.populateMetricGrid();
                 this.setupSingleImageMode();
                 this.setupBatchMode();
             }
@@ -672,13 +795,62 @@
                 });
             }
 
+            populateMetricGrid() {
+                const grid = document.getElementById('metricGrid');
+                grid.innerHTML = '';
+                
+                QUALITY_METRICS.forEach(metric => {
+                    const item = document.createElement('div');
+                    item.className = `checkbox-item ${metric.disabled ? 'disabled' : ''}`;
+                    
+                    const typeIcon = metric.type === 'no-reference' ? '🔍' : '🔗';
+                    const statusText = metric.disabled ? ' (Coming Soon)' : '';
+                    
+                    item.innerHTML = `
+                        <input type="checkbox" id="metric-${metric.id}" value="${metric.id}" 
+                               ${metric.disabled ? 'disabled' : ''} 
+                               ${metric.id === 'loe' ? 'checked' : ''}>
+                        <label for="metric-${metric.id}" title="${metric.description}">
+                            ${typeIcon} <strong>${metric.name}</strong>${statusText}
+                            <br><small style="color: #666;">${metric.fullName}</small>
+                        </label>
+                    `;
+                    
+                    if (metric.disabled) {
+                        item.style.opacity = '0.5';
+                        item.style.cursor = 'not-allowed';
+                    }
+                    
+                    const checkbox = item.querySelector('input');
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            this.selectedMetrics.add(metric.id);
+                            if (!metric.disabled) item.classList.add('selected');
+                        } else {
+                            this.selectedMetrics.delete(metric.id);
+                            item.classList.remove('selected');
+                        }
+                        this.updateBatchButton();
+                        this.updateSingleCalculateButton();
+                    });
+                    
+                    // Select LOE by default
+                    if (metric.id === 'loe') {
+                        item.classList.add('selected');
+                    }
+                    
+                    grid.appendChild(item);
+                });
+            }
+
             updateBatchButton() {
                 const btn = document.getElementById('batchCalculateBtn');
-                const isReady = this.selectedDatasets.size > 0 && this.selectedMethods.size > 0;
+                const isReady = this.selectedDatasets.size > 0 && this.selectedMethods.size > 0 && this.selectedMetrics.size > 0;
                 btn.disabled = !isReady;
                 
                 if (isReady) {
-                    btn.textContent = `Process ${this.selectedDatasets.size} Dataset(s) × ${this.selectedMethods.size} Method(s)`;
+                    const metricsText = Array.from(this.selectedMetrics).join(', ').toUpperCase();
+                    btn.innerHTML = `Process ${this.selectedDatasets.size} Dataset(s) × ${this.selectedMethods.size} Method(s)<br><small style="font-size:0.8em;opacity:0.9">Metrics: ${metricsText}</small>`;
                 } else {
                     btn.textContent = 'Start Batch Processing';
                 }
@@ -783,18 +955,24 @@
 
             updateSingleCalculateButton() {
                 const btn = document.getElementById('calculateBtn');
-                const isReady = this.inputImage && this.enhancedImage;
+                const isReady = this.inputImage && this.enhancedImage && this.selectedMetrics.size > 0;
                 btn.disabled = !isReady;
                 
                 if (isReady) {
                     const sameSize = this.inputImage.width === this.enhancedImage.width && 
                                    this.inputImage.height === this.enhancedImage.height;
                     
+                    const metricsText = Array.from(this.selectedMetrics).join(', ').toUpperCase();
+                    
                     if (!sameSize) {
-                        btn.innerHTML = `Calculate LOE<br><small style="font-size:0.8em;opacity:0.9">Images will be resized to ${this.inputImage.width}×${this.inputImage.height}</small>`;
+                        btn.innerHTML = `Calculate Quality Metrics<br><small style="font-size:0.8em;opacity:0.9">Enhanced image will be resized to ${this.inputImage.width}×${this.inputImage.height}<br>Metrics: ${metricsText}</small>`;
                     } else {
-                        btn.innerHTML = 'Calculate LOE';
+                        btn.innerHTML = `Calculate Quality Metrics<br><small style="font-size:0.8em;opacity:0.9">Metrics: ${metricsText}</small>`;
                     }
+                } else if (this.inputImage && this.enhancedImage) {
+                    btn.innerHTML = 'Select at least one quality metric';
+                } else {
+                    btn.innerHTML = 'Calculate Quality Metrics';
                 }
             }
 
@@ -803,14 +981,32 @@
                 document.getElementById('resultSection').classList.remove('show');
 
                 try {
-                    const targetWidth = this.inputImage.width;
-                    const targetHeight = this.inputImage.height;
+                    const results = {};
                     
-                    const loeValue = await this.loeCalculator.calculateImageLOE(this.inputImage, this.enhancedImage);
-                    this.showSingleResults(loeValue);
+                    // Calculate each selected metric
+                    for (const metricId of this.selectedMetrics) {
+                        const calculator = this.metricCalculators[metricId];
+                        if (!calculator) {
+                            console.warn(`Calculator for ${metricId} not available`);
+                            continue;
+                        }
+                        
+                        let score;
+                        if (metricId === 'loe') {
+                            score = await calculator.calculateImageLOE(this.inputImage, this.enhancedImage);
+                        } else if (metricId === 'niqe') {
+                            // For NIQE, we only need the enhanced image (no-reference)
+                            score = await calculator.calculateImageNIQE(this.enhancedImage);
+                        }
+                        // Future metrics will be added here with their specific APIs
+                        
+                        results[metricId] = score;
+                    }
+                    
+                    this.showSingleResults(results);
                 } catch (error) {
-                    console.error('LOE calculation error:', error);
-                    alert('Error calculating LOE: ' + error.message);
+                    console.error('Quality metric calculation error:', error);
+                    alert('Error calculating quality metrics: ' + error.message);
                 } finally {
                     document.getElementById('processing').classList.remove('show');
                 }
@@ -823,7 +1019,7 @@
                 
                 this.batchResults.clear();
                 this.availableImages.clear();
-                this.individualLOEScores = new Map(); // Reset individual scores
+                this.individualScores = new Map(); // Reset individual scores for all metrics
                 this.datasetSpecificImages = new Map(); // Reset dataset-specific images
                 
                 const progressFill = document.getElementById('progressFill');
@@ -872,6 +1068,7 @@
                             progressText.textContent = `Processing ${dataset} - ${method}...`;
                             
                             const loeScores = [];
+                            const metricScores = {}; // Store scores for each metric
                             let successfulProcessing = 0;
                             
                             // Process only the images that exist for this specific dataset
@@ -889,24 +1086,35 @@
                                     const enhancedImage = await this.loadImageFromPath(enhancedImageUrl);
                                     
                                     if (inputImage && enhancedImage) {
-                                        // Calculate real LOE using your exact algorithm
-                                        const loeValue = await this.calculateRealLOE(inputImage, enhancedImage);
-                                        loeScores.push(loeValue);
+                                        // Calculate real quality metrics using selected metrics
+                                        const metricResults = await this.calculateRealMetrics(inputImage, enhancedImage);
+                                        
+                                        // Store results for each metric
+                                        for (const [metricId, score] of Object.entries(metricResults)) {
+                                            if (!this.individualScores.has(dataset)) {
+                                                this.individualScores.set(dataset, new Map());
+                                            }
+                                            if (!this.individualScores.get(dataset).has(method)) {
+                                                this.individualScores.get(dataset).set(method, new Map());
+                                            }
+                                            if (!this.individualScores.get(dataset).get(method).has(metricId)) {
+                                                this.individualScores.get(dataset).get(method).set(metricId, new Map());
+                                            }
+                                            this.individualScores.get(dataset).get(method).get(metricId).set(imageName, score);
+                                            
+                                            // Store for computing means
+                                            if (!metricScores[metricId]) {
+                                                metricScores[metricId] = [];
+                                            }
+                                            metricScores[metricId].push(score);
+                                        }
+                                        
                                         successfulProcessing++;
                                         
-                                        console.log(`   ✅ ${dataset}/${method}/${imageName}: LOE = ${loeValue.toFixed(2)}`);
-                                        
-                                        // Store individual image LOE scores for gallery display
-                                        if (!this.individualLOEScores) {
-                                            this.individualLOEScores = new Map();
-                                        }
-                                        if (!this.individualLOEScores.has(dataset)) {
-                                            this.individualLOEScores.set(dataset, new Map());
-                                        }
-                                        if (!this.individualLOEScores.get(dataset).has(method)) {
-                                            this.individualLOEScores.get(dataset).set(method, new Map());
-                                        }
-                                        this.individualLOEScores.get(dataset).get(method).set(imageName, loeValue);
+                                        const metricsText = Object.entries(metricResults)
+                                            .map(([id, score]) => `${id.toUpperCase()}=${score.toFixed(2)}`)
+                                            .join(', ');
+                                        console.log(`   ✅ ${dataset}/${method}/${imageName}: ${metricsText}`);
                                         
                                         // Track available images for gallery
                                         this.availableImages.add(imageName);
@@ -927,26 +1135,37 @@
                                 await this.simulateDelay(50);
                             }
                             
-                            // Calculate mean LOE for this method on this dataset
-                            if (loeScores.length > 0) {
-                                const meanLOE = loeScores.reduce((sum, score) => sum + score, 0) / loeScores.length;
-                                
-                                this.batchResults.get(dataset).set(method, {
-                                    scores: loeScores,
-                                    mean: meanLOE,
-                                    processedImages: successfulProcessing,
-                                    totalImages: datasetImages.length
-                                });
-                                
-                                console.log(`${dataset}/${method}: Mean LOE = ${meanLOE.toFixed(2)} (${successfulProcessing}/${datasetImages.length} images)`);
+                            // Calculate mean scores for this method on this dataset
+                            const methodResults = {};
+                            
+                            for (const [metricId, scores] of Object.entries(metricScores)) {
+                                if (scores.length > 0) {
+                                    methodResults[metricId] = {
+                                        scores: scores,
+                                        mean: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+                                        processedImages: successfulProcessing,
+                                        totalImages: datasetImages.length
+                                    };
+                                } else {
+                                    methodResults[metricId] = {
+                                        scores: [],
+                                        mean: null,
+                                        processedImages: 0,
+                                        totalImages: datasetImages.length
+                                    };
+                                }
+                            }
+                            
+                            this.batchResults.get(dataset).set(method, methodResults);
+                            
+                            if (successfulProcessing > 0) {
+                                const metricsText = Object.entries(methodResults)
+                                    .filter(([id, data]) => data.mean !== null)
+                                    .map(([id, data]) => `${id.toUpperCase()}=${data.mean.toFixed(2)}`)
+                                    .join(', ');
+                                console.log(`${dataset}/${method}: ${metricsText} (${successfulProcessing}/${datasetImages.length} images)`);
                             } else {
                                 console.warn(`No images processed successfully for ${dataset}/${method}`);
-                                this.batchResults.get(dataset).set(method, {
-                                    scores: [],
-                                    mean: null,
-                                    processedImages: 0,
-                                    totalImages: datasetImages.length
-                                });
                             }
                         }
                     }
@@ -1035,8 +1254,29 @@
                 return await this.loeCalculator.loadImageFromPath(imageUrl);
             }
 
-            async calculateRealLOE(inputImage, enhancedImage) {
-                return await this.loeCalculator.calculateImageLOE(inputImage, enhancedImage);
+            async calculateRealMetrics(inputImage, enhancedImage) {
+                const results = {};
+                
+                for (const metricId of this.selectedMetrics) {
+                    const calculator = this.metricCalculators[metricId];
+                    if (!calculator) continue;
+                    
+                    try {
+                        let score;
+                        if (metricId === 'loe') {
+                            score = await calculator.calculateImageLOE(inputImage, enhancedImage);
+                        } else if (metricId === 'niqe') {
+                            score = await calculator.calculateImageNIQE(enhancedImage);
+                        }
+                        // Future metrics will be added here
+                        
+                        results[metricId] = score;
+                    } catch (error) {
+                        console.warn(`Error calculating ${metricId}:`, error);
+                    }
+                }
+                
+                return results;
             }
 
             simulateDelay(ms) {
@@ -1353,12 +1593,30 @@
                 // Show results from ALL selected methods (no limit)
                 let count = 0;
                 for (const method of this.selectedMethods) {
-                    // Get individual LOE score for this specific image and method
-                    const individualLOE = this.individualLOEScores?.get(selectedDataset)?.get(method)?.get(imageName);
+                    // Get individual scores for this specific image and method across all metrics
+                    const methodScores = {};
+                    let hasAnyScore = false;
                     
-                    if (individualLOE !== undefined) {
+                    for (const metricId of this.selectedMetrics) {
+                        const score = this.individualScores?.get(selectedDataset)?.get(method)?.get(metricId)?.get(imageName);
+                        if (score !== undefined) {
+                            methodScores[metricId] = score;
+                            hasAnyScore = true;
+                        }
+                    }
+                    
+                    if (hasAnyScore) {
                         const item = document.createElement('div');
                         item.className = 'gallery-item';
+                        
+                        // Create scores display
+                        let scoresHtml = '';
+                        for (const [metricId, score] of Object.entries(methodScores)) {
+                            const metric = QUALITY_METRICS.find(m => m.id === metricId);
+                            if (metric) {
+                                scoresHtml += `<div class="loe-score" style="font-size: 0.9rem; margin: 2px 0;">${metric.name}: ${score.toFixed(3)}</div>`;
+                            }
+                        }
                         
                         // Load actual enhanced image from your GitHub Pages
                         const resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/${method}/${imageName}`;
@@ -1367,14 +1625,14 @@
                                  onerror="this.src='https://via.placeholder.com/250x200/ffebee/c62828?text=${method.replace(/\s+/g, '+')}+Not+Found'; this.title='${resultUrl} not found';"
                                  title="${method}: ${imageName}">
                             <h4>${method}</h4>
-                            <div class="loe-score">LOE: ${individualLOE.toFixed(2)}</div>
+                            ${scoresHtml}
                         `;
                         gallery.appendChild(item);
                         count++;
                     } else {
                         // If no individual score available, check if method has any data for this dataset
                         const methodData = this.batchResults.get(selectedDataset)?.get(method);
-                        if (methodData && methodData.mean !== null) {
+                        if (methodData) {
                             const item = document.createElement('div');
                             item.className = 'gallery-item';
                             
@@ -1404,13 +1662,14 @@
                     noteItem.style.marginTop = '20px';
                     noteItem.style.border = '2px solid #e3f2fd';
                     noteItem.innerHTML = `
-                        <h4 style="color: #1976d2; margin-bottom: 15px;">🎯 Individual Image LOE Scores</h4>
+                        <h4 style="color: #1976d2; margin-bottom: 15px;">🎯 Individual Image Quality Scores</h4>
                         <p><strong>Selected Image:</strong> <code>${selectedDataset}/${imageName}</code> | <strong>Methods Displayed:</strong> ${count} of ${this.selectedMethods.size} selected</p>
+                        <p><strong>Quality Metrics:</strong> ${Array.from(this.selectedMetrics).map(id => QUALITY_METRICS.find(m => m.id === id)?.name || id).join(', ')}</p>
                         <p><strong>Input URL:</strong> <code>${inputUrl}</code></p>
                         <p><strong>Enhanced URLs:</strong> <code>https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/[METHOD]/${imageName}</code></p>
                         <div style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
-                            <p style="color: #2e7d32;"><strong>✅ Each LOE score shown is calculated specifically for this individual image pair!</strong></p>
-                            <p style="margin-top: 10px; font-size: 0.9em;">All ${this.selectedMethods.size} selected enhancement methods are displayed with their individual performance on this specific image from the ${selectedDataset} dataset.</p>
+                            <p style="color: #2e7d32;"><strong>✅ Each score shown is calculated specifically for this individual image pair!</strong></p>
+                            <p style="margin-top: 10px; font-size: 0.9em;">All ${this.selectedMethods.size} selected enhancement methods are displayed with their individual performance across ${this.selectedMetrics.size} quality metric(s) on this specific image from the ${selectedDataset} dataset.</p>
                         </div>
                     `;
                     gallery.appendChild(noteItem);
@@ -1576,11 +1835,9 @@
                 return extended;
             }
 
-            showSingleResults(loeValue) {
+            showSingleResults(results) {
                 const sameSize = this.inputImage.width === this.enhancedImage.width && 
                                this.inputImage.height === this.enhancedImage.height;
-                
-                const interpretation = this.loeCalculator.getInterpretation(loeValue);
                 
                 const resultSection = document.getElementById('resultSection');
                 if (!resultSection) {
@@ -1596,10 +1853,40 @@
                     </p>`;
                 }
                 
+                // Create results display for each metric
+                let metricsHtml = '';
+                for (const [metricId, score] of Object.entries(results)) {
+                    const metric = QUALITY_METRICS.find(m => m.id === metricId);
+                    const calculator = this.metricCalculators[metricId];
+                    
+                    if (metric && calculator) {
+                        const interpretation = calculator.getInterpretation ? calculator.getInterpretation(score) : 'Score calculated';
+                        const rating = calculator.getPerformanceRating ? calculator.getPerformanceRating(score) : 'N/A';
+                        const color = calculator.getRatingColor ? calculator.getRatingColor(rating) : '#666';
+                        
+                        metricsHtml += `
+                            <div style="background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; border-left: 4px solid ${color};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <h3 style="color: #333; margin: 0;">${metric.name} (${metric.fullName})</h3>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 2rem; font-weight: bold; color: ${color};">${score.toFixed(3)}</div>
+                                        <div style="font-size: 0.9rem; color: ${color}; font-weight: 600;">${rating}</div>
+                                    </div>
+                                </div>
+                                <p style="color: #666; margin: 0; font-size: 0.95rem;">${interpretation}</p>
+                                <div style="font-size: 0.8rem; color: #999; margin-top: 8px;">
+                                    ${metric.type === 'no-reference' ? '🔍 No-Reference' : '🔗 Full-Reference'} • 
+                                    ${metric.lowerIsBetter ? 'Lower is better' : 'Higher is better'}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
                 resultSection.innerHTML = `
-                    <div class="loe-value" id="loeValue">${loeValue.toFixed(2)}</div>
-                    <div class="loe-interpretation" id="loeInterpretation">${interpretation}</div>
-                    <p><strong>Calculation completed!</strong> The LOE metric measures how well the enhanced image preserves the lightness order relationships of the original image.</p>
+                    <h3 style="text-align: center; margin-bottom: 25px; color: #333;">Quality Assessment Results</h3>
+                    ${metricsHtml}
+                    <p style="text-align: center; margin-top: 20px;"><strong>Analysis completed!</strong> Multiple quality metrics provide comprehensive image enhancement evaluation.</p>
                     ${dimensionNote}
                 `;
                 
@@ -1624,7 +1911,7 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', () => {
-            new LOECalculatorApp();
+            new ImageQualityAssessmentApp();
         });
     </script>
 </body>
