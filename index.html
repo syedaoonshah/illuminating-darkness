@@ -949,12 +949,12 @@
                 // Dataset-specific image names
                 const datasetImages = {
                     'NPE': ['birds.png', 'harbor.png', 'night fall.png', 'Parking.png', 'rail.png', 'road.png', 'sculpture.png', 'skyscraper.png'],
+                    'MEF': ['Balloons.png', 'BelgiumHouse.png', 'Cadik.png', 'Candle.png', 'Cave.png', 'ChineseGarden.png', 'Farmhouse.png', 'House.png', 'Kluki.png', 'Lamp.png', 'Landscape.png', 'LightHouse.png', 'Madison.png', 'Memorial.png', 'Office.png', 'Tower.png', 'Venice.png'],
                     'LOL': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png',
                            '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png'],
                     'DICM': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png',
                             '11.png', '12.png', '13.png', '14.png', '15.png', '16.png', '17.png', '18.png', '19.png', '20.png'],
-                    'LIME': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png'],
-                    'MEF': ['Balloons.png','BelgiumHouse.png','Cadik.png','Candle.png','Cave.png','ChineseGarden.png','Farmhouse.png','House.png','Kluki.png','Lamp.png','Landscape.png','LightHouse.png','Madison.png','Memorial.png','Office.png','Tower.png','Venice.png']
+                    'LIME': ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png']
                 };
                 
                 const availableImages = new Set(); // Use Set to avoid duplicates across datasets
@@ -999,10 +999,9 @@
                     // Return appropriate defaults based on selected datasets
                     if (this.selectedDatasets.has('NPE')) {
                         return ['birds.png', 'harbor.png', 'road.png'];
-                    }if (this.selectedDatasets.has('MEF')) {
-                        return ['Balloons.png','BelgiumHouse.png','Cadik.png','Candle.png','Cave.png','ChineseGarden.png','Farmhouse.png','House.png','Kluki.png','Lamp.png','Landscape.png','LightHouse.png','Madison.png','Memorial.png','Office.png','Tower.png','Venice.png'];
-                    }
-                    else {
+                    } else if (this.selectedDatasets.has('MEF')) {
+                        return ['Balloons.png', 'House.png', 'Landscape.png'];
+                    } else {
                         return ['1.png', '2.png', '3.png'];
                     }
                 }
@@ -1152,10 +1151,10 @@
                 for (const dataset of this.selectedDatasets) {
                     const datasetImages = {
                         'NPE': ['birds.png', 'harbor.png', 'night fall.png', 'Parking.png', 'rail.png', 'road.png', 'sculpture.png', 'skyscraper.png'],
+                        'MEF': ['Balloons.png', 'BelgiumHouse.png', 'Cadik.png', 'Candle.png', 'Cave.png', 'ChineseGarden.png', 'Farmhouse.png', 'House.png', 'Kluki.png', 'Lamp.png', 'Landscape.png', 'LightHouse.png', 'Madison.png', 'Memorial.png', 'Office.png', 'Tower.png', 'Venice.png'],
                         'LOL': '20+ numbered images (1.png - 20.png)',
                         'DICM': '20+ numbered images (1.png - 20.png)', 
-                        'LIME': '10 numbered images (1.png - 10.png)',
-                        'MEF': ['Balloons.png','BelgiumHouse.png','Cadik.png','Candle.png','Cave.png','ChineseGarden.png','Farmhouse.png','House.png','Kluki.png','Lamp.png','Landscape.png','LightHouse.png','Madison.png','Memorial.png','Office.png','Tower.png','Venice.png']
+                        'LIME': '10 numbered images (1.png - 10.png)'
                     };
                     
                     const images = datasetImages[dataset];
