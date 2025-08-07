@@ -1296,7 +1296,7 @@
                             <thead>
                                 <tr>
                                     <th>Enhancement Method</th>
-                                    <th>Mean LOE Score</th>
+                                    <th>Primary Quality Score</th>
                                     <th>Images Processed</th>
                                     <th>Performance Rating</th>
                                 </tr>
@@ -1307,40 +1307,59 @@
                     // Sort methods by mean LOE (lower is better), handling null values
                     const sortedMethods = Array.from(methods.entries())
                         .sort((a, b) => {
-                            if (a[1].mean === null) return 1;
-                            if (b[1].mean === null) return -1;
-                            return a[1].mean - b[1].mean;
+                            // Use the first selected metric for sorting
+                            const primaryMetricId = Array.from(this.selectedMetrics)[0];
+                            const aData = a[1][primaryMetricId];
+                            const bData = b[1][primaryMetricId];
+                            
+                            if (!aData || aData.mean === null) return 1;
+                            if (!bData || bData.mean === null) return -1;
+                            return aData.mean - bData.mean;
                         });
                     
                     sortedMethods.forEach(([method, data]) => {
-                        const rating = data.mean !== null ? this.getLOEPerformanceRating(data.mean) : 'No Data';
-                        const meanDisplay = data.mean !== null ? data.mean.toFixed(2) : 'N/A';
-                        
-                        html += `
-                            <tr>
-                                <td><strong>${method}</strong></td>
-                                <td class="loe-score">${meanDisplay}</td>
-                                <td>${data.processedImages}/${data.totalImages}</td>
-                                <td style="color: ${this.getRatingColor(rating)}">${rating}</td>
-                            </tr>
-                        `;
-                    });
+    // Handle multiple metrics - use the first selected metric for primary display
+    const primaryMetricId = Array.from(this.selectedMetrics)[0];
+    const primaryData = data[primaryMetricId];
+    
+    const rating = (primaryData && primaryData.mean !== null) ? this.getLOEPerformanceRating(primaryData.mean) : 'No Data';
+    const meanDisplay = (primaryData && primaryData.mean !== null) ? primaryData.mean.toFixed(2) : 'N/A';
+    const processedImages = primaryData ? primaryData.processedImages : 0;
+    const totalImages = primaryData ? primaryData.totalImages : 0;
+    
+    html += `
+        <tr>
+            <td><strong>${method}</strong></td>
+            <td class="loe-score">${meanDisplay}</td>
+            <td>${processedImages}/${totalImages}</td>
+            <td style="color: ${this.getRatingColor(rating)}">${rating}</td>
+        </tr>
+    `;
+});
                     
                     // Add overall best method row (only if we have valid data)
-                    const validMethods = sortedMethods.filter(([method, data]) => data.mean !== null);
-                    if (validMethods.length > 0) {
-                        const bestMethod = validMethods[0];
-                        html += `
-                                <tr class="mean-row">
-                                    <td><strong>Best Method: ${bestMethod[0]}</strong></td>
-                                    <td class="loe-score">${bestMethod[1].mean.toFixed(2)}</td>
-                                    <td>${bestMethod[1].processedImages}/${bestMethod[1].totalImages}</td>
-                                    <td style="color: ${this.getRatingColor(this.getLOEPerformanceRating(bestMethod[1].mean))}">
-                                        ${this.getLOEPerformanceRating(bestMethod[1].mean)}
-                                    </td>
-                                </tr>
-                        `;
-                    }
+const validMethods = sortedMethods.filter(([method, data]) => {
+    const primaryMetricId = Array.from(this.selectedMetrics)[0];
+    const primaryData = data[primaryMetricId];
+    return primaryData && primaryData.mean !== null;
+});
+
+if (validMethods.length > 0) {
+    const bestMethod = validMethods[0];
+    const primaryMetricId = Array.from(this.selectedMetrics)[0];
+    const bestData = bestMethod[1][primaryMetricId];
+    
+    html += `
+            <tr class="mean-row">
+                <td><strong>Best Method: ${bestMethod[0]}</strong></td>
+                <td class="loe-score">${bestData.mean.toFixed(2)}</td>
+                <td>${bestData.processedImages}/${bestData.totalImages}</td>
+                <td style="color: ${this.getRatingColor(this.getLOEPerformanceRating(bestData.mean))}">
+                    ${this.getLOEPerformanceRating(bestData.mean)}
+                </td>
+            </tr>
+    `;
+}
                     
                     html += `</tbody></table>`;
                 }
