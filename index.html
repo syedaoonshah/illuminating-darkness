@@ -1252,7 +1252,7 @@
             }
 
             async loadImageFromPath(imageUrl) {
-                return await this.loeCalculator.loadImageFromPath(imageUrl);
+                return await this.metricCalculators.loe.loadImageFromPath(imageUrl);
             }
 
             async calculateRealMetrics(inputImage, enhancedImage) {
@@ -1281,7 +1281,7 @@
             }
 
             simulateDelay(ms) {
-                return this.loeCalculator.simulateDelay(ms);
+                return this.metricCalculators.loe.simulateDelay(ms);
             }
 
             showBatchResults() {
@@ -1491,11 +1491,11 @@
             }
 
             getLOEPerformanceRating(loeValue) {
-                return this.loeCalculator.getLOEPerformanceRating(loeValue);
+                return this.metricCalculators.loe.getLOEPerformanceRating(loeValue);
             }
-
+            
             getRatingColor(rating) {
-                return this.loeCalculator.getRatingColor(rating);
+                return this.metricCalculators.loe.getRatingColor(rating);
             }
 
             setupImageGallery() {
