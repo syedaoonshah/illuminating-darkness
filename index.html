@@ -621,9 +621,24 @@
 
     <script src="loe-calculator.js"></script>
     <script src="niqe-calculator.js"></script>
-    <script>
-        // Dataset and method definitions
-        const DATASETS = ['LOL', 'DICM', 'NPE', 'LIME', 'MEF'];
+<script>
+    // Tab switching functionality - MUST be in global scope
+    function switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+
+    // Dataset and method definitions
+    const DATASETS = ['LOL', 'DICM', 'NPE', 'LIME', 'MEF'];
         const METHODS = [
             'CFWD', 'GSAD', 'Wave-Mamba', 'PyDiff', 'LYT-Net', 'Jin et al', 
             'HEP', 'SHAL-Net', 'AGLLDiff', 'LightenDiffusion', 'ZeroIG', 
@@ -1916,23 +1931,24 @@ if (validMethods.length > 0) {
 
         // Tab switching functionality
         function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
+    // Update tab buttons
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+}
+       
 
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', () => {
-            new ImageQualityAssessmentApp();
-        });
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', () => {
+        new ImageQualityAssessmentApp();
+    });
     </script>
 </body>
 </html>
