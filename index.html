@@ -997,6 +997,7 @@
 
         class ImageQualityAssessmentApp {
             constructor() {
+                this.imageExtensionMap = new Map();
                 this.inputImage = null;
                 this.enhancedImage = null;
                 this.selectedDatasets = new Set();
@@ -1006,7 +1007,6 @@
                 this.availableImages = new Set();
                 this.individualScores = new Map(); // Store individual image scores for all metrics
                 this.datasetSpecificImages = new Map(); // Store available images per dataset
-                this.imageExtensionMap = new Map(); // Store the actual extension found for each image
                 
                 // Initialize quality metric calculators
                 this.metricCalculators = {
@@ -1356,86 +1356,86 @@
                             
                             const metricScores = {}; // Store scores for each metric
                             let successfulProcessing = 0;
-                            
                             for (const imageName of datasetImages) {
-                                try {
-                                    progressText.textContent = `Processing ${dataset} - ${method} - ${imageName}`;
-                                    
-                                    // Get the actual file extension found during discovery
-                                    const inputExtension = this.imageExtensionMap.get(dataset).get(imageName);
-                                    const inputImageName = `${imageName}.${inputExtension}`;
-                                    
-                                    const inputImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/inputs/${inputImageName}`;
-                                    
-                                    // For enhanced images, try to find the right extension by testing common ones
-                                    let enhancedImage = null;
-                                    let enhancedImageUrl = null;
-                                    
-                                    const commonExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'];
-                                    for (const ext of commonExtensions) {
-                                        const testEnhancedName = `${imageName}.${ext}`;
-                                        const testEnhancedUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/results/${method}/${testEnhancedName}`;
-                                        
-                                        const testImage = await this.metricCalculators.loe.loadImageFromPath(testEnhancedUrl);
-                                        if (testImage) {
-                                            enhancedImage = testImage;
-                                            enhancedImageUrl = testEnhancedUrl;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    console.log(`🔄 Processing: ${dataset}/${method}/${imageName} (input: ${inputExtension}, enhanced: ${enhancedImageUrl ? enhancedImageUrl.split('/').pop() : 'not found'})`);
-                                    
-                                    const inputImage = await this.metricCalculators.loe.loadImageFromPath(inputImageUrl);
-                                    
-                                    if (inputImage && enhancedImage) {
-                                        // Calculate real quality metrics using selected metrics
-                                        const metricResults = await this.calculateRealMetrics(inputImage, enhancedImage);
-                                        
-                                        // Store results for each metric
-                                        for (const [metricId, score] of Object.entries(metricResults)) {
-                                            if (!this.individualScores.has(dataset)) {
-                                                this.individualScores.set(dataset, new Map());
-                                            }
-                                            if (!this.individualScores.get(dataset).has(method)) {
-                                                this.individualScores.get(dataset).set(method, new Map());
-                                            }
-                                            if (!this.individualScores.get(dataset).get(method).has(metricId)) {
-                                                this.individualScores.get(dataset).get(method).set(metricId, new Map());
-                                            }
-                                            this.individualScores.get(dataset).get(method).get(metricId).set(imageName, score);
-                                            
-                                            // Store for computing means
-                                            if (!metricScores[metricId]) {
-                                                metricScores[metricId] = [];
-                                            }
-                                            metricScores[metricId].push(score);
-                                        }
-                                        
-                                        successfulProcessing++;
-                                        
-                                        const metricsText = Object.entries(metricResults)
-                                            .map(([id, score]) => `${id.toUpperCase()}=${score.toFixed(3)}`)
-                                            .join(', ');
-                                        console.log(`   ✅ ${dataset}/${method}/${imageName}: ${metricsText}`);
-                                        
-                                        this.availableImages.add(imageName);
-                                    } else {
-                                        if (!inputImage) console.warn(`   ❌ Failed to load input: ${inputImageUrl}`);
-                                        if (!enhancedImage) console.warn(`   ❌ Failed to load enhanced: tried multiple extensions for ${imageName} in ${method}`);
-                                    }
-                                    
-                                } catch (error) {
-                                    console.error(`   💥 Error processing ${dataset}/${method}/${imageName}:`, error.message);
-                                }
-                                
-                                completedOperations++;
-                                const progress = (completedOperations / totalOperations) * 100;
-                                progressFill.style.width = `${progress}%`;
-                                
-                                await this.metricCalculators.loe.simulateDelay(50);
-                            }
-                            
+    try {
+        progressText.textContent = `Processing ${dataset} - ${method} - ${imageName}`;
+        
+        // Get the actual file extension found during discovery
+        const inputExtension = this.imageExtensionMap.get(dataset).get(imageName);
+        const inputImageName = `${imageName}.${inputExtension}`;
+        
+        const inputImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/inputs/${inputImageName}`;
+        
+        // For enhanced images, try to find the right extension by testing common ones
+        let enhancedImage = null;
+        let enhancedImageUrl = null;
+        
+        const commonExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'];
+        for (const ext of commonExtensions) {
+            const testEnhancedName = `${imageName}.${ext}`;
+            const testEnhancedUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/results/${method}/${testEnhancedName}`;
+            
+            const testImage = await this.metricCalculators.loe.loadImageFromPath(testEnhancedUrl);
+            if (testImage) {
+                enhancedImage = testImage;
+                enhancedImageUrl = testEnhancedUrl;
+                break;
+            }
+        }
+        
+        console.log(`🔄 Processing: ${dataset}/${method}/${imageName} (input: ${inputExtension}, enhanced: ${enhancedImageUrl ? enhancedImageUrl.split('/').pop() : 'not found'})`);
+        
+        const inputImage = await this.metricCalculators.loe.loadImageFromPath(inputImageUrl);
+        
+        if (inputImage && enhancedImage) {
+            // Calculate real quality metrics using selected metrics
+            const metricResults = await this.calculateRealMetrics(inputImage, enhancedImage);
+            
+            // Store results for each metric
+            for (const [metricId, score] of Object.entries(metricResults)) {
+                if (!this.individualScores.has(dataset)) {
+                    this.individualScores.set(dataset, new Map());
+                }
+                if (!this.individualScores.get(dataset).has(method)) {
+                    this.individualScores.get(dataset).set(method, new Map());
+                }
+                if (!this.individualScores.get(dataset).get(method).has(metricId)) {
+                    this.individualScores.get(dataset).get(method).set(metricId, new Map());
+                }
+                this.individualScores.get(dataset).get(method).get(metricId).set(imageName, score);
+                
+                // Store for computing means
+                if (!metricScores[metricId]) {
+                    metricScores[metricId] = [];
+                }
+                metricScores[metricId].push(score);
+            }
+            
+            successfulProcessing++;
+            
+            const metricsText = Object.entries(metricResults)
+                .map(([id, score]) => `${id.toUpperCase()}=${score.toFixed(3)}`)
+                .join(', ');
+            console.log(`   ✅ ${dataset}/${method}/${imageName}: ${metricsText}`);
+            
+            this.availableImages.add(imageName);
+        } else {
+            if (!inputImage) console.warn(`   ❌ Failed to load input: ${inputImageUrl}`);
+            if (!enhancedImage) console.warn(`   ❌ Failed to load enhanced: tried multiple extensions for ${imageName} in ${method}`);
+        }
+        
+    } catch (error) {
+        console.error(`   💥 Error processing ${dataset}/${method}/${imageName}:`, error.message);
+    }
+    
+    completedOperations++;
+    const progress = (completedOperations / totalOperations) * 100;
+    progressFill.style.width = `${progress}%`;
+    
+    await this.metricCalculators.loe.simulateDelay(50);
+}
+
+
                             // Calculate mean scores for this method on this dataset
                             const methodResults = {};
                             
@@ -1485,90 +1485,90 @@
             }
 
             async discoverAvailableImages() {
-                // Define image names WITHOUT extensions - we'll try multiple extensions
-                const datasetImageNames = {
-                    'NPE': ['birds', 'harbor', 'night fall', 'Parking', 'rail', 'road', 'sculpture', 'skyscraper'],
-                    'MEF': ['Balloons', 'BelgiumHouse', 'Cadik', 'Candle', 'Cave', 'ChineseGarden', 'Farmhouse', 'House', 'Kluki', 'Lamp', 'Landscape', 'LightHouse', 'Madison', 'Memorial', 'Office', 'Tower', 'Venice'],
-                    'DICM': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '52', '53', '54', '55', '56', '57', '58', '60', '61', '62', '63', '64', '65', '66', '67', '69'],
-                    'LOL': ['1', '111', '146', '179', '22', '23', '493', '547', '55', '665', '669', '748', '778', '780', '79'],
-                    'LIME': ['1', '10', '2', '3', '4', '5', '6', '7', '8', '9']
-                };
-                
-                // Common image extensions to try
-                const commonExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'];
-                
-                this.datasetSpecificImages = new Map();
-                this.imageExtensionMap = new Map(); // Store the actual extension found for each image
-                
-                console.log(`🔍 Discovering images for selected datasets (trying multiple extensions)...`);
-                
-                for (const dataset of this.selectedDatasets) {
-                    console.log(`\n📁 Checking ${dataset} dataset...`);
-                    
-                    const imageNamesToCheck = datasetImageNames[dataset];
-                    
-                    if (!imageNamesToCheck) {
-                        console.warn(`   ⚠️ No predefined images for dataset: ${dataset}`);
-                        continue;
+    // Define image names WITHOUT extensions - we'll try multiple extensions
+    const datasetImageNames = {
+        'NPE': ['birds', 'harbor', 'night fall', 'Parking', 'rail', 'road', 'sculpture', 'skyscraper'],
+        'MEF': ['Balloons', 'BelgiumHouse', 'Cadik', 'Candle', 'Cave', 'ChineseGarden', 'Farmhouse', 'House', 'Kluki', 'Lamp', 'Landscape', 'LightHouse', 'Madison', 'Memorial', 'Office', 'Tower', 'Venice'],
+        'DICM': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '52', '53', '54', '55', '56', '57', '58', '60', '61', '62', '63', '64', '65', '66', '67', '69'],
+        'LOL': ['1', '111', '146', '179', '22', '23', '493', '547', '55', '665', '669', '748', '778', '780', '79'],
+        'LIME': ['1', '10', '2', '3', '4', '5', '6', '7', '8', '9']
+    };
+    
+    // Common image extensions to try
+    const commonExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'];
+    
+    this.datasetSpecificImages = new Map();
+    this.imageExtensionMap = new Map(); // Store the actual extension found for each image
+    
+    console.log(`🔍 Discovering images for selected datasets (trying multiple extensions)...`);
+    
+    for (const dataset of this.selectedDatasets) {
+        console.log(`\n📁 Checking ${dataset} dataset...`);
+        
+        const imageNamesToCheck = datasetImageNames[dataset];
+        
+        if (!imageNamesToCheck) {
+            console.warn(`   ⚠️ No predefined images for dataset: ${dataset}`);
+            continue;
+        }
+        
+        console.log(`   📋 Checking ${imageNamesToCheck.length} image names with multiple extensions for ${dataset}...`);
+        
+        const datasetAvailableImages = [];
+        if (!this.imageExtensionMap.has(dataset)) {
+            this.imageExtensionMap.set(dataset, new Map());
+        }
+        
+        for (const imageName of imageNamesToCheck) {
+            let foundExtension = null;
+            let foundImage = null;
+            
+            // Try each extension until we find one that works
+            for (const ext of commonExtensions) {
+                const fullImageName = `${imageName}.${ext}`;
+                try {
+                    const testImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/inputs/${fullImageName}`;
+                    const testImage = await this.metricCalculators.loe.loadImageFromPath(testImageUrl);
+                    if (testImage) {
+                        foundExtension = ext;
+                        foundImage = testImage;
+                        console.log(`   ✓ Found: ${imageName}.${ext}`);
+                        break;
                     }
-                    
-                    console.log(`   📋 Checking ${imageNamesToCheck.length} image names with multiple extensions for ${dataset}...`);
-                    
-                    const datasetAvailableImages = [];
-                    if (!this.imageExtensionMap.has(dataset)) {
-                        this.imageExtensionMap.set(dataset, new Map());
-                    }
-                    
-                    for (const imageName of imageNamesToCheck) {
-                        let foundExtension = null;
-                        let foundImage = null;
-                        
-                        // Try each extension until we find one that works
-                        for (const ext of commonExtensions) {
-                            const fullImageName = `${imageName}.${ext}`;
-                            try {
-                                const testImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/inputs/${fullImageName}`;
-                                const testImage = await this.metricCalculators.loe.loadImageFromPath(testImageUrl);
-                                if (testImage) {
-                                    foundExtension = ext;
-                                    foundImage = testImage;
-                                    console.log(`   ✓ Found: ${imageName}.${ext}`);
-                                    break;
-                                }
-                            } catch (error) {
-                                // Continue trying other extensions
-                            }
-                        }
-                        
-                        if (foundExtension) {
-                            datasetAvailableImages.push(imageName);
-                            this.imageExtensionMap.get(dataset).set(imageName, foundExtension);
-                        } else {
-                            console.log(`   ✗ Missing: ${imageName} (tried: ${commonExtensions.join(', ')})`);
-                        }
-                    }
-                    
-                    this.datasetSpecificImages.set(dataset, datasetAvailableImages);
-                    console.log(`   📊 ${dataset}: Found ${datasetAvailableImages.length} images`);
+                } catch (error) {
+                    // Continue trying other extensions
                 }
-                
-                console.log(`\n📊 Discovery Summary:`);
-                for (const [dataset, images] of this.datasetSpecificImages) {
-                    const extensions = this.imageExtensionMap.get(dataset);
-                    const imageList = images.slice(0, 3).map(img => `${img}.${extensions.get(img)}`).join(', ');
-                    console.log(`   📁 ${dataset}: ${images.length} images - ${imageList}${images.length > 3 ? '...' : ''}`);
-                }
-                
-                const allAvailableImages = new Set();
-                for (const images of this.datasetSpecificImages.values()) {
-                    images.forEach(img => allAvailableImages.add(img));
-                }
-                
-                const combinedList = Array.from(allAvailableImages);
-                console.log(`   🎯 Combined unique images: ${combinedList.length}`);
-                
-                return combinedList;
             }
+            
+            if (foundExtension) {
+                datasetAvailableImages.push(imageName);
+                this.imageExtensionMap.get(dataset).set(imageName, foundExtension);
+            } else {
+                console.log(`   ✗ Missing: ${imageName} (tried: ${commonExtensions.join(', ')})`);
+            }
+        }
+        
+        this.datasetSpecificImages.set(dataset, datasetAvailableImages);
+        console.log(`   📊 ${dataset}: Found ${datasetAvailableImages.length} images`);
+    }
+    
+    console.log(`\n📊 Discovery Summary:`);
+    for (const [dataset, images] of this.datasetSpecificImages) {
+        const extensions = this.imageExtensionMap.get(dataset);
+        const imageList = images.slice(0, 3).map(img => `${img}.${extensions.get(img)}`).join(', ');
+        console.log(`   📁 ${dataset}: ${images.length} images - ${imageList}${images.length > 3 ? '...' : ''}`);
+    }
+    
+    const allAvailableImages = new Set();
+    for (const images of this.datasetSpecificImages.values()) {
+        images.forEach(img => allAvailableImages.add(img));
+    }
+    
+    const combinedList = Array.from(allAvailableImages);
+    console.log(`   🎯 Combined unique images: ${combinedList.length}`);
+    
+    return combinedList;
+}
 
             async calculateRealMetrics(inputImage, enhancedImage) {
                 const results = {};
@@ -1855,17 +1855,7 @@
                 let datasetInfo = '';
                 for (const dataset of this.selectedDatasets) {
                     const images = this.datasetSpecificImages.get(dataset) || [];
-                    const extensions = this.imageExtensionMap?.get(dataset);
-                    let imageDisplay = '';
-                    
-                    if (extensions && images.length > 0) {
-                        imageDisplay = images.slice(0, 3).map(img => `${img}.${extensions.get(img)}`).join(', ');
-                        if (images.length > 3) imageDisplay += '...';
-                    } else {
-                        imageDisplay = `${images.length} images`;
-                    }
-                    
-                    datasetInfo += `<li><strong>${dataset}:</strong> ${images.length} images (${imageDisplay})</li>`;
+                    datasetInfo += `<li><strong>${dataset}:</strong> ${images.length} images (${images.slice(0, 3).join(', ')}${images.length > 3 ? '...' : ''})</li>`;
                 }
                 
                 const metricsInfo = Array.from(this.selectedMetrics).map(id => {
@@ -1995,11 +1985,11 @@
                 const inputExtension = this.imageExtensionMap?.get(selectedDataset)?.get(imageName) || 'png';
                 const inputFileName = `${imageName}.${inputExtension}`;
                 const inputUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/inputs/${inputFileName}`;
-                
+
                 inputItem.innerHTML = `
                     <img src="${inputUrl}" alt="Input Image" 
-                         onerror="this.src='https://via.placeholder.com/250x200/f0f0f0/666?text=Input+Not+Found'; this.title='${inputUrl} not found';"
-                         title="Input: ${inputFileName}">
+                        onerror="this.src='https://via.placeholder.com/250x200/f0f0f0/666?text=Input+Not+Found'; this.title='${inputUrl} not found';"
+                        title="Input: ${inputFileName}">
                     <h4>Input (${selectedDataset})</h4>
                     <div class="loe-score">Original</div>
                 `;
@@ -2030,22 +2020,17 @@
                             }
                         }
                         
-                        // For enhanced images, create multiple fallback URLs with different extensions
                         const commonExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'];
-                        const fallbackUrls = commonExtensions.map(ext => 
-                            `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/${method}/${imageName}.${ext}`
-                        ).join(', ');
-                        
                         const primaryResultUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/${method}/${imageName}.jpg`;
-                        
+
                         item.innerHTML = `
                             <img src="${primaryResultUrl}" alt="${method} Result" 
-                                 onerror="this.tryNextExtension('${selectedDataset}', '${method}', '${imageName}', 0);" 
-                                 title="${method}: ${imageName}">
+                                onerror="this.tryNextExtension('${selectedDataset}', '${method}', '${imageName}', 0);" 
+                                title="${method}: ${imageName}">
                             <h4>${method}</h4>
                             ${scoresHtml}
                         `;
-                        
+
                         // Add a method to try different extensions
                         const img = item.querySelector('img');
                         img.tryNextExtension = (dataset, method, name, extIndex) => {
@@ -2058,73 +2043,11 @@
                                 img.title = `${method}: ${name} not found (tried: ${commonExtensions.join(', ')})`;
                             }
                         };
-                        
                         gallery.appendChild(item);
                         count++;
                     } else {
                         const methodData = this.batchResults.get(selectedDataset)?.get(method);
                         if (methodData) {
-                            const item = document.createElement('div');
-                            item.className = 'gallery-item';
-                            
-                            const primaryResultUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/${method}/${imageName}.jpg`;
-                            item.innerHTML = `
-                                <img src="${primaryResultUrl}" alt="${method} Result" 
-                                     onerror="this.tryNextExtension('${selectedDataset}', '${method}', '${imageName}', 0);"
-                                     title="${method}: ${imageName}">
-                                <h4>${method}</h4>
-                                <div class="loe-score" style="color: #ff9800;">Processing...</div>
-                            `;
-                            
-                            // Add the same extension fallback method
-                            const img = item.querySelector('img');
-                            img.tryNextExtension = (dataset, method, name, extIndex) => {
-                                if (extIndex < commonExtensions.length) {
-                                    const nextUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/results/${method}/${name}.${commonExtensions[extIndex]}`;
-                                    img.src = nextUrl;
-                                    img.onerror = () => img.tryNextExtension(dataset, method, name, extIndex + 1);
-                                } else {
-                                    img.src = `https://via.placeholder.com/250x200/fff3e0/e65100?text=${method.replace(/\s+/g, '+')}+Processing`;
-                                    img.title = `${method}: ${name} - processing or not found`;
-                                }
-                            };
-                            
-                            gallery.appendChild(item);
-                            count++;
-                        }
-                    }
-                }
-                
-                if (count > 0 || Array.from(this.selectedMethods).length > 0) {
-                    const noteItem = document.createElement('div');
-                    noteItem.style.gridColumn = '1 / -1';
-                    noteItem.style.textAlign = 'center';
-                    noteItem.style.padding = '20px';
-                    noteItem.style.color = '#666';
-                    noteItem.style.background = '#f0f9ff';
-                    noteItem.style.borderRadius = '10px';
-                    noteItem.style.marginTop = '20px';
-                    noteItem.style.border = '2px solid #e3f2fd';
-                    
-                    const selectedMetricsText = Array.from(this.selectedMetrics).map(id => {
-                        const metric = QUALITY_METRICS.find(m => m.id === id);
-                        return metric ? metric.name : id.toUpperCase();
-                    }).join(', ');
-                    
-                    noteItem.innerHTML = `
-                        <h4 style="color: #1976d2; margin-bottom: 15px;">🎯 Individual Image Quality Scores</h4>
-                        <p><strong>Selected Image:</strong> <code>${selectedDataset}/${imageName}</code> | <strong>Methods Displayed:</strong> ${count} of ${this.selectedMethods.size} selected</p>
-                        <p><strong>Quality Metrics:</strong> ${selectedMetricsText}</p>
-                        <p><strong>Input File:</strong> <code>${inputFileName}</code> (auto-detected extension)</p>
-                        <p><strong>Enhanced URLs:</strong> Auto-detecting extensions (jpg, png, bmp, etc.) for each method</p>
-                        <div style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
-                            <p style="color: #2e7d32;"><strong>✅ Extension-Flexible Loading!</strong></p>
-                            <p style="margin-top: 10px; font-size: 0.9em;">The system automatically tries multiple file extensions for each enhanced image, ensuring compatibility with different output formats from enhancement methods.</p>
-                        </div>
-                    `;
-                    gallery.appendChild(noteItem);
-                }
-             {
                             const item = document.createElement('div');
                             item.className = 'gallery-item';
                             
@@ -2171,9 +2094,9 @@
                     `;
                     gallery.appendChild(noteItem);
                 }
-            
+            }
 
-            showSingleResults(results) 
+            showSingleResults(results) {
                 const sameSize = this.inputImage.width === this.enhancedImage.width && 
                                this.inputImage.height === this.enhancedImage.height;
                 
@@ -2229,8 +2152,8 @@
                 `;
                 
                 resultSection.classList.add('show');
-            
-        
+            }
+        }
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', () => {
