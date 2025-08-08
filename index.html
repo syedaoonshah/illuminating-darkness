@@ -625,6 +625,7 @@
             </div>
             
             <p><strong>Batch Processing:</strong> Upload datasets in the format: datasets/[DATASET]/inputs/ and datasets/[DATASET]/results/[METHOD]/ to enable automatic evaluation across multiple metrics.</p>
+            <p><strong>Flexible Extensions:</strong> The system now automatically detects image files with different extensions (.jpg, .jpeg, .png, .bmp, .webp) in the results folder.</p>
         </div>
     </div>
 
@@ -651,6 +652,9 @@
             'HEP', 'SHAL-Net', 'AGLLDiff', 'LightenDiffusion', 'ZeroIG', 
             'RRDNet', 'SGZ', 'Zero-DCE++', 'Zero-DCE'
         ];
+
+        // Supported image extensions for flexible matching
+        const SUPPORTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'bmp', 'webp', 'gif', 'tiff', 'tif'];
 
         // Available quality metrics
         const QUALITY_METRICS = [
@@ -777,6 +781,34 @@
                     
                     img.src = imagePath;
                 });
+            }
+
+            // NEW METHOD: Try to find enhanced image with different extensions
+            async findEnhancedImageWithFlexibleExtension(baseUrl, originalFilename) {
+                // Extract filename without extension
+                const fileNameWithoutExt = originalFilename.replace(/\.[^/.]+$/, "");
+                
+                console.log(`🔍 Searching for enhanced version of: ${originalFilename}`);
+                console.log(`   Base filename: ${fileNameWithoutExt}`);
+                
+                // Try each supported extension
+                for (const ext of SUPPORTED_EXTENSIONS) {
+                    const testUrl = `${baseUrl}${fileNameWithoutExt}.${ext}`;
+                    console.log(`   Trying: ${testUrl}`);
+                    
+                    try {
+                        const img = await this.loadImageFromPath(testUrl);
+                        if (img) {
+                            console.log(`   ✅ Found: ${testUrl}`);
+                            return { img, actualUrl: testUrl, actualFilename: `${fileNameWithoutExt}.${ext}` };
+                        }
+                    } catch (error) {
+                        console.log(`   ❌ Failed: ${testUrl}`);
+                    }
+                }
+                
+                console.log(`   ⚠️ No enhanced image found for ${originalFilename}`);
+                return { img: null, actualUrl: null, actualFilename: null };
             }
 
             async computeLOE(inputData, enhancedData) {
@@ -1006,6 +1038,7 @@
                 this.availableImages = new Set();
                 this.individualScores = new Map(); // Store individual image scores for all metrics
                 this.datasetSpecificImages = new Map(); // Store available images per dataset
+                this.enhancedImageMappings = new Map(); // Store actual enhanced image filenames
                 
                 // Initialize quality metric calculators
                 this.metricCalculators = {
@@ -1307,6 +1340,7 @@
                 this.availableImages.clear();
                 this.individualScores = new Map();
                 this.datasetSpecificImages = new Map();
+                this.enhancedImageMappings = new Map();
                 
                 const progressFill = document.getElementById('progressFill');
                 const progressText = document.getElementById('progressText');
@@ -1334,6 +1368,7 @@
                     console.log(`   📏 ${this.selectedMetrics.size} metrics selected: ${Array.from(this.selectedMetrics).join(', ')}`);
                     console.log(`   🎯 ${totalOperations} total calculations`);
                     console.log(`   🌐 Loading from: https://syedaoonshah.github.io/illuminating-darkness/`);
+                    console.log(`   🔄 Flexible extension matching enabled`);
                     console.log('');
                     
                     for (const dataset of this.selectedDatasets) {
@@ -1361,14 +1396,26 @@
                                     progressText.textContent = `Processing ${dataset} - ${method} - ${imageName}`;
                                     
                                     const inputImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/inputs/${imageName}`;
-                                    const enhancedImageUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/results/${method}/${imageName}`;
+                                    const enhancedBaseUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${dataset}/results/${method}/`;
                                     
                                     console.log(`🔄 Processing: ${dataset}/${method}/${imageName}`);
                                     
                                     const inputImage = await this.metricCalculators.loe.loadImageFromPath(inputImageUrl);
-                                    const enhancedImage = await this.metricCalculators.loe.loadImageFromPath(enhancedImageUrl);
+                                    
+                                    // NEW: Use flexible extension matching
+                                    const enhancedResult = await this.metricCalculators.loe.findEnhancedImageWithFlexibleExtension(enhancedBaseUrl, imageName);
+                                    const enhancedImage = enhancedResult.img;
+                                    const actualEnhancedFilename = enhancedResult.actualFilename;
                                     
                                     if (inputImage && enhancedImage) {
+                                        // Store the actual enhanced filename mapping
+                                        const mappingKey = `${dataset}:${method}:${imageName}`;
+                                        this.enhancedImageMappings.set(mappingKey, {
+                                            originalFilename: imageName,
+                                            actualEnhancedFilename: actualEnhancedFilename,
+                                            enhancedUrl: enhancedResult.actualUrl
+                                        });
+                                        
                                         // Calculate real quality metrics using selected metrics
                                         const metricResults = await this.calculateRealMetrics(inputImage, enhancedImage);
                                         
@@ -1397,12 +1444,12 @@
                                         const metricsText = Object.entries(metricResults)
                                             .map(([id, score]) => `${id.toUpperCase()}=${score.toFixed(3)}`)
                                             .join(', ');
-                                        console.log(`   ✅ ${dataset}/${method}/${imageName}: ${metricsText}`);
+                                        console.log(`   ✅ ${dataset}/${method}/${imageName} → ${actualEnhancedFilename}: ${metricsText}`);
                                         
                                         this.availableImages.add(imageName);
                                     } else {
                                         if (!inputImage) console.warn(`   ❌ Failed to load input: ${inputImageUrl}`);
-                                        if (!enhancedImage) console.warn(`   ❌ Failed to load enhanced: ${enhancedImageUrl}`);
+                                        if (!enhancedImage) console.warn(`   ❌ No enhanced image found for: ${imageName} in ${method}`);
                                     }
                                     
                                 } catch (error) {
@@ -1476,6 +1523,7 @@
                 this.datasetSpecificImages = new Map();
                 
                 console.log(`🔍 Discovering images for selected datasets...`);
+                console.log(`🔄 Flexible extension matching: ${SUPPORTED_EXTENSIONS.join(', ')}`);
                 
                 for (const dataset of this.selectedDatasets) {
                     console.log(`\n📁 Checking ${dataset} dataset...`);
@@ -1792,6 +1840,7 @@
                 let successfulProcessing = 0;
                 let totalMethods = 0;
                 let methodsWithData = 0;
+                let extensionMappingCount = 0;
                 
                 for (const [dataset, methods] of this.batchResults) {
                     for (const [method, methodData] of methods) {
@@ -1804,6 +1853,9 @@
                         }
                     }
                 }
+                
+                // Count extension mappings
+                extensionMappingCount = this.enhancedImageMappings.size;
                 
                 const successRate = totalImages > 0 ? (successfulProcessing / totalImages * 100).toFixed(1) : '0';
                 const methodSuccessRate = totalMethods > 0 ? (methodsWithData / totalMethods * 100).toFixed(1) : '0';
@@ -1818,6 +1870,40 @@
                     const metric = QUALITY_METRICS.find(m => m.id === id);
                     return metric ? `${metric.name} (${metric.fullName})` : id.toUpperCase();
                 }).join('<br>');
+                
+                // Create extension mapping summary
+                let extensionMappingInfo = '';
+                const extensionCounts = new Map();
+                
+                for (const [key, mapping] of this.enhancedImageMappings) {
+                    const originalExt = mapping.originalFilename.split('.').pop().toLowerCase();
+                    const enhancedExt = mapping.actualEnhancedFilename.split('.').pop().toLowerCase();
+                    
+                    if (originalExt !== enhancedExt) {
+                        const mappingKey = `${originalExt} → ${enhancedExt}`;
+                        extensionCounts.set(mappingKey, (extensionCounts.get(mappingKey) || 0) + 1);
+                    }
+                }
+                
+                if (extensionCounts.size > 0) {
+                    extensionMappingInfo = `
+                        <div style="background: #fff3e0; border-radius: 8px; padding: 15px; margin-top: 15px;">
+                            <h5 style="color: #f57c00; margin-bottom: 10px;">🔄 Extension Mappings Detected:</h5>
+                            <ul style="margin: 0; padding-left: 20px; color: #666;">
+                    `;
+                    
+                    for (const [mapping, count] of extensionCounts) {
+                        extensionMappingInfo += `<li><strong>${mapping}:</strong> ${count} file(s)</li>`;
+                    }
+                    
+                    extensionMappingInfo += `
+                            </ul>
+                            <p style="margin-top: 10px; font-size: 0.9em; color: #e65100;">
+                                <strong>Flexible Extension Matching:</strong> The system automatically found enhanced images with different extensions than the input images.
+                            </p>
+                        </div>
+                    `;
+                }
                 
                 return `
                     <div style="background: #e8f5e8; border-radius: 10px; padding: 20px; margin-top: 25px;">
@@ -1855,9 +1941,12 @@
                             </div>
                         </div>
                         
+                        ${extensionMappingInfo}
+                        
                         <p style="margin-top: 15px; font-size: 0.9em; color: #666;">
-                            <strong>🧮 Algorithm:</strong> Multi-metric evaluation with precise calculations for comprehensive quality assessment.
+                            <strong>🧮 Algorithm:</strong> Multi-metric evaluation with flexible extension matching for comprehensive quality assessment.
                             <br><strong>🌐 Source:</strong> Images loaded from <code>https://syedaoonshah.github.io/illuminating-darkness/</code>
+                            <br><strong>🔄 Supported Extensions:</strong> ${SUPPORTED_EXTENSIONS.join(', ')}
                         </p>
                     </div>
                 `;
@@ -1972,12 +2061,26 @@
                             }
                         }
                         
-                        const resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/${method}/${imageName}`;
+                        // Get the actual enhanced image URL from mappings
+                        const mappingKey = `${selectedDataset}:${method}:${imageName}`;
+                        const mapping = this.enhancedImageMappings.get(mappingKey);
+                        let resultUrl, actualFilename;
+                        
+                        if (mapping) {
+                            resultUrl = mapping.enhancedUrl;
+                            actualFilename = mapping.actualEnhancedFilename;
+                        } else {
+                            // Fallback to original URL construction
+                            resultUrl = `https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/${method}/${imageName}`;
+                            actualFilename = imageName;
+                        }
+                        
                         item.innerHTML = `
                             <img src="${resultUrl}" alt="${method} Result" 
                                  onerror="this.src='https://via.placeholder.com/250x200/ffebee/c62828?text=${method.replace(/\s+/g, '+')}+Not+Found'; this.title='${resultUrl} not found';"
-                                 title="${method}: ${imageName}">
+                                 title="${method}: ${actualFilename}">
                             <h4>${method}</h4>
+                            <div style="font-size: 0.75rem; color: #999; margin-bottom: 5px;">${actualFilename}</div>
                             ${scoresHtml}
                         `;
                         gallery.appendChild(item);
@@ -2018,12 +2121,16 @@
                         return metric ? metric.name : id.toUpperCase();
                     }).join(', ');
                     
+                    const extensionMappingText = this.enhancedImageMappings.size > 0 ? 
+                        `<p><strong>🔄 Flexible Extension Matching:</strong> ${this.enhancedImageMappings.size} enhanced images found with automatic extension detection</p>` : '';
+                    
                     noteItem.innerHTML = `
                         <h4 style="color: #1976d2; margin-bottom: 15px;">🎯 Individual Image Quality Scores</h4>
                         <p><strong>Selected Image:</strong> <code>${selectedDataset}/${imageName}</code> | <strong>Methods Displayed:</strong> ${count} of ${this.selectedMethods.size} selected</p>
                         <p><strong>Quality Metrics:</strong> ${selectedMetricsText}</p>
                         <p><strong>Input URL:</strong> <code>${inputUrl}</code></p>
-                        <p><strong>Enhanced URLs:</strong> <code>https://syedaoonshah.github.io/illuminating-darkness/datasets/${selectedDataset}/results/[METHOD]/${imageName}</code></p>
+                        <p><strong>Enhanced URLs:</strong> Auto-detected with flexible extension matching</p>
+                        ${extensionMappingText}
                         <div style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
                             <p style="color: #2e7d32;"><strong>✅ Each score shown is calculated specifically for this individual image pair!</strong></p>
                             <p style="margin-top: 10px; font-size: 0.9em;">All ${this.selectedMethods.size} selected enhancement methods are displayed with their individual performance across ${this.selectedMetrics.size} quality metric(s) on this specific image from the ${selectedDataset} dataset.</p>
